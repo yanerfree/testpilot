@@ -1,0 +1,21 @@
+node_modules/
+dist/
+.cache/
+*.log
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+
+# Environment
+.env
+.env.local
+
+# TestPilot config (contains API key)
+.testpilotrc.json
+
+# Claude Code
+.claude/
