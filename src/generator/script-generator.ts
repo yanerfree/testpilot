@@ -347,18 +347,78 @@ function parseE2eSteps(steps: string): string[] {
 
   for (const part of parts) {
     const trimmed = part.trim();
+
+    // 重复/循环操作
+    if (/重复.*共?(\d+)次/.test(trimmed)) {
+      const countMatch = trimmed.match(/共?(\d+)次/);
+      const count = countMatch ? parseInt(countMatch[1]) : 3;
+      lines.push(`for (let i = 0; i < ${count}; i++) {`);
+      // Find the referenced steps and inline them
+      const refMatch = trimmed.match(/重复步骤(\d+)-(\d+)/);
+      if (refMatch) {
+        // Re-parse referenced steps from the original parts
+        const from = parseInt(refMatch[1]) - 1;
+        const to = parseInt(refMatch[2]) - 1;
+        const allParts = steps.split(/\d+\.\s*/).filter(Boolean);
+        for (let s = from; s <= to && s < allParts.length; s++) {
+          const subSteps = parseE2eSteps(`1. ${allParts[s]}`);
+          for (const sub of subSteps) {
+            lines.push(`  ${sub}`);
+          }
+        }
+      }
+      lines.push('}');
+      continue;
+    }
+
+    // 勾选复选框
+    if (/勾选/.test(trimmed)) {
+      const checkMatch = trimmed.match(/勾选[「]?(.+?)[」]?(?:复选框)?$/);
+      if (checkMatch) {
+        lines.push(`await page.getByLabel('${checkMatch[1].trim()}').check();`);
+      }
+      continue;
+    }
+
+    // 点击链接
+    if (/点击.*链接|点击[「].*[」]链接/.test(trimmed)) {
+      const linkMatch = trimmed.match(/点击[「\s]*(.+?)[」\s]*链接/);
+      if (linkMatch) {
+        lines.push(`await page.getByRole('link', { name: '${linkMatch[1].trim()}' }).click();`);
+      }
+      continue;
+    }
+
+    // 点击按钮
+    if (/点击.*按钮|点击[「].*[」]按钮/.test(trimmed)) {
+      const btnMatch = trimmed.match(/点击[「\s]*(.+?)[」\s]*按钮/);
+      if (btnMatch) {
+        lines.push(`await page.getByRole('button', { name: '${btnMatch[1].trim()}' }).click();`);
+      }
+      continue;
+    }
+
+    // 通用点击（无明确按钮/链接标识）
+    if (/^点击/.test(trimmed)) {
+      const clickMatch = trimmed.match(/点击[「\s]*(.+?)[」\s]*$/);
+      if (clickMatch) {
+        lines.push(`await page.getByRole('button', { name: '${clickMatch[1].trim()}' }).click();`);
+      }
+      continue;
+    }
+
+    // 输入框输入
     if (/输入框输入|填写/.test(trimmed)) {
       const labelMatch = trimmed.match(/(?:在)?(.+?)(?:输入框)?(?:输入|填写)\s*(.+)/);
       if (labelMatch) {
         lines.push(`await page.getByLabel('${labelMatch[1].trim()}').fill('${labelMatch[2].trim()}');`);
       }
-    } else if (/点击/.test(trimmed)) {
-      const btnMatch = trimmed.match(/点击[「\s]*(.+?)[」\s]*(?:按钮|$)/);
-      if (btnMatch) {
-        lines.push(`await page.getByRole('button', { name: '${btnMatch[1].trim()}' }).click();`);
-      }
-    } else if (/留空/.test(trimmed)) {
-      // do nothing — field is left empty
+      continue;
+    }
+
+    // 留空 — 不操作
+    if (/留空/.test(trimmed)) {
+      continue;
     }
   }
 
@@ -367,18 +427,34 @@ function parseE2eSteps(steps: string): string[] {
 
 function parseE2eAssertions(expected: string): string[] {
   const lines: string[] = [];
+  // Split by numbered items: "1. xxx 2. xxx" or "1. xxx，2. xxx"
   const parts = expected.split(/\d+\.\s*/).filter(Boolean);
 
   for (const part of parts) {
-    const trimmed = part.trim();
-    if (/跳转到\s*(\/\S+)/.test(trimmed)) {
-      const match = trimmed.match(/跳转到\s*(\/\S+)/);
-      if (match) lines.push(`await expect(page).toHaveURL('${match[1]}');`);
-    } else if (/显示/.test(trimmed)) {
-      const msgMatch = trimmed.match(/显示[「"]?(.+?)[」"]?\s*$/);
-      if (msgMatch) {
-        lines.push(`await expect(page.getByText('${msgMatch[1]}')).toBeVisible();`);
+    const trimmed = part.replace(/[，,]\s*$/, '').trim();
+
+    // 页面跳转
+    const urlMatch = trimmed.match(/(?:页面)?跳转到\s*(\/[\w/-]+)/);
+    if (urlMatch) {
+      lines.push(`await expect(page).toHaveURL('${urlMatch[1]}');`);
+      continue;
+    }
+
+    // 显示某段文字
+    const showMatch = trimmed.match(/显示[「"]?(.+?)[」"]?\s*$/);
+    if (showMatch) {
+      const text = showMatch[1].replace(/[，,。].*$/, '').trim();
+      lines.push(`await expect(page.getByText('${text}')).toBeVisible();`);
+      continue;
+    }
+
+    // 页面停留
+    if (/页面停留/.test(trimmed)) {
+      const stayMatch = trimmed.match(/停留在\s*(\/[\w/-]+)/);
+      if (stayMatch) {
+        lines.push(`await expect(page).toHaveURL('${stayMatch[1]}');`);
       }
+      continue;
     }
   }
 
