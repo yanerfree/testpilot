@@ -58,26 +58,39 @@ Agent：已生成 31 条测试用例，写入 ./tests/generated/api-spec.api-cas
   ↓
 Agent：请提供测试用例文件路径
   ↓
-用户：./tests/generated/api-spec.api-cases.md
+用户：./tests/output1/api-spec.api-cases.md
   ↓
 Agent：检测到 31 条测试用例，涉及 4 个模块。
+
+       [检查环境配置 tests/env.config.ts]
+       ✓ api.baseUrl = http://192.168.51.108:5173
+       ⚠ 检测到使用 admin 账号，建议使用专用测试账号
+  ↓
+用户：改成 tester / 123456
+  ↓
+Agent：✓ 已更新环境配置
        请确认：
-       - 框架：Playwright（默认）
-       - 语言：TypeScript（默认）
-       - 输出目录：./tests/specs/（默认）
-       - 环境配置：请确认 tests/env.config.ts 是否已配置被测环境信息
+       - 输出目录：./tests/output1/（与用例同目录）
   ↓
 用户：确认
   ↓
 Agent：生成中...
   ↓
-Agent：已生成 4 个测试文件，写入 ./tests/specs/
-       - register.api.spec.ts (12 个 test)
-       - login.api.spec.ts (6 个 test)
-       - me.api.spec.ts (5 个 test)
-       - password.api.spec.ts (9 个 test)
+Agent：已生成 4 个测试文件，写入 ./tests/output1/
        所有脚本通过 env.config.ts 引用环境变量，不硬编码地址。
 ```
+
+### 3.3 Agent 检查清单
+
+生成脚本前 Agent 必须确认：
+
+| 检查项 | 说明 |
+|--------|------|
+| 环境配置文件存在 | `tests/env.config.ts` 是否存在 |
+| baseUrl 已配置 | 被测系统地址，不能是空或占位符 |
+| 测试账号已配置 | username + password，不能为空 |
+| 非 admin 账号 | 如果是 admin，警告用户并建议更换 |
+| 输出目录明确 | 用户指定了就用用户的，没指定才用默认 |
 
 ## 4. 输入规范
 
