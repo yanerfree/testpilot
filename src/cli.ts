@@ -1,13 +1,20 @@
 import { Command } from 'commander';
 import chalk from 'chalk';
 import ora from 'ora';
+import fs from 'node:fs/promises';
+import path from 'node:path';
 import { loadConfig, resolveApiKey, type CLIFlags } from './config/loader.js';
 import { createLLMProvider } from './llm/factory.js';
 import { generateTests } from './generator/generator.js';
+import { generateTestCasesLocally } from './generator/local-generator.js';
 import { generateScripts } from './generator/script-generator.js';
-import { TestPilotError, ConfigError, LLMError } from './errors.js';
+import { detectFormat, type InputFormat } from './parsers/detect.js';
+import { parseMarkdown } from './parsers/markdown.js';
+import { parseText } from './parsers/text.js';
+import { parseOpenAPI } from './parsers/openapi.js';
+import { writeTestFile } from './output/writer.js';
+import { TestPilotError, ConfigError, LLMError, ParseError } from './errors.js';
 import type { TestMode } from './llm/types.js';
-import type { InputFormat } from './parsers/detect.js';
 
 const program = new Command();
 
@@ -44,47 +51,66 @@ program
 
     try {
       const config = await loadConfig(flags);
-
-      if (config.executor === 'self') {
-        // TODO: self 模式 — agent 自身生成，不调外部 API
-        console.log(chalk.yellow('Self executor mode — not yet implemented in CLI. Use as Claude Code agent instead.'));
-        process.exit(0);
-      }
-
-      const apiKey = resolveApiKey(config);
-      const provider = createLLMProvider(config, apiKey);
+      const mode = flags.mode ?? 'api';
 
       for (const inputPath of inputs) {
         const spinner = ora({
-          text: `Generating ${flags.mode} test cases from ${inputPath}...`,
+          text: `Generating ${mode} test cases from ${inputPath}...`,
           color: 'cyan',
         }).start();
 
         try {
-          const result = await generateTests({
-            inputPath,
-            mode: flags.mode ?? 'api',
-            config,
-            provider,
-            format: flags.format as InputFormat | undefined,
-            dryRun: flags.dryRun,
-            verbose: flags.verbose,
-          });
+          if (config.executor === 'self') {
+            const content = await fs.readFile(inputPath, 'utf-8');
+            const format = flags.format ?? detectFormat(inputPath, content);
+            let parsed;
+            switch (format) {
+              case 'markdown': parsed = parseMarkdown(content, inputPath); break;
+              case 'openapi': parsed = await parseOpenAPI(content, inputPath); break;
+              default: parsed = parseText(content);
+            }
 
-          spinner.succeed(
-            flags.dryRun
-              ? `Generated ${flags.mode} test cases from ${inputPath}`
-              : `Written to ${result.outputPath}`,
-          );
+            const testCases = generateTestCasesLocally(parsed, mode, '');
 
-          if (flags.dryRun) {
-            console.log('\n' + result.content);
-          }
+            if (flags.dryRun) {
+              spinner.succeed(`Generated ${mode} test cases from ${inputPath}`);
+              console.log('\n' + testCases);
+            } else {
+              const basename = path.basename(inputPath, path.extname(inputPath));
+              const suffix = mode === 'e2e' ? '.e2e-cases.md' : '.api-cases.md';
+              const outputPath = path.resolve(config.output.dir, basename + suffix);
+              await writeTestFile(testCases, outputPath, config.output.overwrite);
+              spinner.succeed(`Written to ${outputPath}`);
+            }
+          } else {
+            const apiKey = resolveApiKey(config);
+            const provider = createLLMProvider(config, apiKey);
 
-          if (flags.verbose) {
-            console.error(chalk.dim(`  Model: ${result.model}`));
-            console.error(chalk.dim(`  Tokens: ${result.usage?.inputTokens ?? '?'} in / ${result.usage?.outputTokens ?? '?'} out`));
-            console.error(chalk.dim(`  Duration: ${result.durationMs}ms`));
+            const result = await generateTests({
+              inputPath,
+              mode,
+              config,
+              provider,
+              format: flags.format as InputFormat | undefined,
+              dryRun: flags.dryRun,
+              verbose: flags.verbose,
+            });
+
+            spinner.succeed(
+              flags.dryRun
+                ? `Generated ${mode} test cases from ${inputPath}`
+                : `Written to ${result.outputPath}`,
+            );
+
+            if (flags.dryRun) {
+              console.log('\n' + result.content);
+            }
+
+            if (flags.verbose) {
+              console.error(chalk.dim(`  Model: ${result.model}`));
+              console.error(chalk.dim(`  Tokens: ${result.usage?.inputTokens ?? '?'} in / ${result.usage?.outputTokens ?? '?'} out`));
+              console.error(chalk.dim(`  Duration: ${result.durationMs}ms`));
+            }
           }
         } catch (err) {
           spinner.fail(`Failed to generate test cases from ${inputPath}`);
@@ -131,6 +157,39 @@ program
     } catch (err) {
       handleError(err);
     }
+  });
+
+program
+  .command('init')
+  .description('Create a .testpilotrc.json config file')
+  .action(async () => {
+    const configPath = path.resolve('.testpilotrc.json');
+    try {
+      await fs.access(configPath);
+      console.log(chalk.yellow('.testpilotrc.json already exists.'));
+      return;
+    } catch {
+      // file doesn't exist — create it
+    }
+
+    const defaultConfig = {
+      executor: 'self',
+      llm: {
+        provider: 'deepseek',
+        model: 'deepseek-chat',
+        apiKey: '',
+        maxTokens: 8192,
+        temperature: 0.2,
+      },
+      output: {
+        dir: './tests/generated',
+        overwrite: false,
+      },
+    };
+
+    await fs.writeFile(configPath, JSON.stringify(defaultConfig, null, 2) + '\n', 'utf-8');
+    console.log(chalk.green(`Created ${configPath}`));
+    console.log(chalk.dim('Edit the file to set your LLM API key and preferences.'));
   });
 
 function handleError(err: unknown): never {

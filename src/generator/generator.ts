@@ -12,6 +12,7 @@ import { buildUserMessage } from '../prompts/templates.js';
 import { getFewShotExamples } from '../prompts/examples.js';
 import { extractTestCases } from './postprocess.js';
 import { writeTestFile } from '../output/writer.js';
+import { parseOpenAPI } from '../parsers/openapi.js';
 import { ParseError } from '../errors.js';
 import type { InputFormat } from '../parsers/detect.js';
 
@@ -51,7 +52,8 @@ export async function generateTests(options: GenerateOptions): Promise<GenerateR
       parsed = parseMarkdown(rawContent, inputPath);
       break;
     case 'openapi':
-      throw new ParseError('OpenAPI parser is not yet implemented. Use --format markdown or --format text.');
+      parsed = await parseOpenAPI(rawContent, inputPath);
+      break;
     case 'text':
       parsed = parseText(rawContent);
       break;

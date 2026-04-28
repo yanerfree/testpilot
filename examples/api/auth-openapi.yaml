@@ -1,0 +1,79 @@
+openapi: 3.0.3
+info:
+  title: User Auth API
+  version: 1.0.0
+  description: User authentication endpoints
+servers:
+  - url: http://localhost:3000
+paths:
+  /api/auth/register:
+    post:
+      summary: Register a new user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [username, email, password]
+              properties:
+                username:
+                  type: string
+                  example: testuser
+                email:
+                  type: string
+                  example: test@example.com
+                password:
+                  type: string
+                  example: Abc123456
+      responses:
+        '201':
+          description: User created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id: { type: integer }
+                  username: { type: string }
+                  email: { type: string }
+        '400':
+          description: Missing or invalid fields
+        '409':
+          description: Email already registered
+  /api/auth/login:
+    post:
+      summary: Login with email and password
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password]
+              properties:
+                email:
+                  type: string
+                  example: test@example.com
+                password:
+                  type: string
+                  example: Abc123456
+      responses:
+        '200':
+          description: Login successful, returns JWT token
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  token: { type: string }
+                  user:
+                    type: object
+                    properties:
+                      id: { type: integer }
+                      username: { type: string }
+                      email: { type: string }
+        '401':
+          description: Invalid credentials
+        '400':
+          description: Missing required fields
