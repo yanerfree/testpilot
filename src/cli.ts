@@ -14,6 +14,7 @@ import { parseText } from './parsers/text.js';
 import { parseOpenAPI } from './parsers/openapi.js';
 import { writeTestFile } from './output/writer.js';
 import { askGenerateOptions, askScriptOptions } from './interactive.js';
+import { startChat } from './chat.js';
 import { TestPilotError, ConfigError, LLMError } from './errors.js';
 import type { TestMode } from './llm/types.js';
 
@@ -223,6 +224,13 @@ program
     await fs.writeFile(configPath, JSON.stringify(defaultConfig, null, 2) + '\n', 'utf-8');
     console.log(chalk.green(`Created ${configPath}`));
     console.log(chalk.dim('Edit the file to set your LLM API key and preferences.'));
+  });
+
+program
+  .command('chat', { isDefault: true })
+  .description('Interactive natural language mode')
+  .action(async () => {
+    await startChat();
   });
 
 function handleError(err: unknown): never {
