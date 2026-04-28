@@ -17,5 +17,12 @@ dist/
 # TestPilot config (contains API key)
 .testpilotrc.json
 
+# Test environment config (contains credentials)
+tests/env.config.ts
+
+# Test results
+test-results/
+playwright-report/
+
 # Claude Code
 .claude/

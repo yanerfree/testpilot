@@ -236,9 +236,13 @@ await page.getByLabel('邮箱').fill(env.testUser.email);
 |------|------|
 | `.testpilotrc.json` | TestPilot 配置（执行模式、LLM、输出路径） |
 | `tests/env.config.ts` | 被测环境配置（URL、数据库、测试账号） |
+| `docs/agent-behavior-guide.md` | Agent 行为规范（交互原则、流程、安全规则、报告规范） |
 | `docs/test-case-generation-guide.md` | 测试用例生成规范（字段定义、覆盖要求、编写规范） |
+| `docs/test-script-generation-guide.md` | 测试脚本生成规范（映射规则、断言规则、数据恢复） |
 | `src/prompts/system-api.ts` | API 测试用例生成提示词（给 LLM 用，从规范提炼） |
 | `src/prompts/system-e2e.ts` | E2E 测试用例生成提示词（给 LLM 用，从规范提炼） |
 | `src/prompts/examples.ts` | Few-shot 示例（给 LLM 用，示范输出格式） |
 | `src/generator/local-generator.ts` | self 模式的本地生成逻辑 |
+| `src/generator/script-generator.ts` | 用例→脚本的生成器 |
 | `src/generator/generator.ts` | LLM 模式的生成编排器 |
+| `src/env-check.ts` | 环境配置检查（生成脚本前校验） |
