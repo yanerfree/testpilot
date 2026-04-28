@@ -164,9 +164,43 @@ await expect(page.getByText('欢迎')).toBeVisible();
 - 需要唯一数据时用时间戳或随机值：`const email = \`test_\${Date.now()}@example.com\``
 - 需要已存在数据时在 `beforeAll` 中创建
 
-### 7.2 数据清理
+### 7.2 数据恢复（强制规则）
 
-- 修改类操作（改密码、修改资料）在 test 结束时还原
+**凡是修改了系统原有数据的操作，必须在 test 结束时恢复到操作前的状态。**
+
+适用场景：
+- 修改密码 → 改回原密码
+- 修改用户信息（昵称、头像、邮箱等）→ 改回原值
+- 修改系统配置/设置 → 改回原值
+- 修改数据状态（启用/禁用、审核通过/拒绝等）→ 改回原状态
+- 删除数据 → 如果是软删除需恢复，硬删除需在 beforeAll 中创建专用测试数据
+
+实现方式：**必须使用 try/finally**，确保即使断言失败也能执行恢复。
+
+```typescript
+test('should change password successfully', async () => {
+  const newPassword = 'NewPass789';
+  const response = await changePassword(context, authToken, env.testUser.password, newPassword);
+  expect(response.status()).toBe(200);
+
+  try {
+    // 验证逻辑
+    const loginRes = await login(context, newPassword);
+    expect(loginRes.status()).toBe(200);
+  } finally {
+    // 恢复密码 — 无论断言是否通过都执行
+    const tmpToken = await login(context, newPassword);
+    await changePassword(context, tmpToken, newPassword, env.testUser.password);
+    authToken = await login(context);
+  }
+});
+```
+
+**禁止事项：**
+- 禁止把恢复逻辑放在 try 块里（断言失败后不会执行）
+- 禁止依赖下一个 test 来恢复数据
+- 禁止直接操作数据库来恢复（通过 API 恢复）
+
 - 创建类操作（注册用户）如需清理，在 `afterAll` 中处理
 - 不依赖数据库直接操作，通过 API 调用完成数据准备和清理
 
@@ -197,7 +231,10 @@ const response = await context.get('/api/auth/me', {
 ## 8. 禁止事项
 
 - 禁止硬编码任何环境地址、端口、账号密码
+- 禁止使用管理员账号（admin）进行测试，如用户提供 admin 账号需提醒风险，建议使用专用测试账号
+- 禁止修改系统原有数据后不恢复（必须 try/finally 还原）
 - 禁止 test 之间有执行顺序依赖
 - 禁止在 test 中使用 `sleep` / `waitForTimeout`（用 Playwright 的自动等待）
 - 禁止跳过断言（不能只调接口不检查结果）
 - 禁止在脚本中写注释解释业务逻辑（业务逻辑在用例文档中，脚本只负责执行）
+- 禁止直接操作数据库（通过 API 完成数据准备和恢复）
