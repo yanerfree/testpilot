@@ -1,0 +1,50 @@
+# =============================================
+# 认证配置 — 签名算法通过此处切换
+# =============================================
+auth:
+  enabled: true
+  # 签名算法: RSAWithSHA256 | SM2WithSM3
+  algorithm: "RSAWithSHA256"
+  rsa:
+    private_key_path: "cert/rsa_private_key.pem"
+    public_key_path: "cert/rsa_public_key.pem"
+  sm2:
+    private_key_path: "cert/sm2_private_key.pem"
+    public_key_path: "cert/sm2_public_key.pem"
+
+# =============================================
+# 环境配置
+# =============================================
+environments:
+  dev:
+    base_url: "https://172.16.2.112:7443"
+    timeout: 60
+  test:
+    base_url: "https://172.16.2.112:7443"
+    timeout: 60
+  prod:
+    base_url: "https://api.example.com"
+    timeout: 30
+
+current_env: "test"
+
+# =============================================
+# 路径配置
+# =============================================
+paths:
+  excel_data: "data/test_data.xlsx"
+  log_dir: "logs"
+  allure_results: "reports/allure-results"
+  allure_report: "reports/allure-report"
+
+# =============================================
+# 日志配置
+# =============================================
+log:
+  level: "INFO"
+  format: "%(asctime)s [%(levelname)s] %(name)s - %(message)s"
+
+# =============================================
+# 回调 mock 地址
+# =============================================
+callback_url: "http://10.10.1.207:8000/callback"

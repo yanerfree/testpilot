@@ -1,0 +1,9 @@
+__pycache__/
+*.pyc
+*.pyo
+logs/
+output/
+reports/
+*.pem
+.pytest_cache/
+*.bak
