@@ -110,10 +110,10 @@ def row(case_id, desc, endpoint, expected_status, json_data=None, params=None,
     }
 
 
-# FileServer host 占位符
-FS_HOST = "${fileServerHost}"
+# FileServer host 占位符（${env.xxx} 语法，由 excel_handler 从 config sheet 替换）
+FS_HOST = "${env.fileServerHost}"
 # 租户密评 VSM host 占位符
-VSM_HOST = "${vsmHost}"
+VSM_HOST = "${env.vsmHost}"
 
 
 # ================================================================

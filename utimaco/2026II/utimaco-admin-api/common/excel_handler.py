@@ -39,6 +39,7 @@ class ExcelHandler:
         if not os.path.isfile(self.file_path):
             raise FileNotFoundError(f"Excel 文件不存在: {self.file_path}")
         logger.info("Excel 路径: %s", self.file_path)
+        self._config_vars = self._load_config_vars()
 
     # ------------------------------------------------------------------
     # 公共 API
@@ -75,6 +76,7 @@ class ExcelHandler:
                 continue
             if isinstance(val, str):
                 val = val.strip()
+                val = self._replace_config_refs(val)
                 val = self._replace_keys_refs(val)
                 rec[key] = val
 
@@ -150,6 +152,39 @@ class ExcelHandler:
             if isinstance(v, dict):
                 out[k] = self._auto_fill(v)
         return out
+
+    def _load_config_vars(self) -> dict:
+        """读取 config sheet 的 key/value 列，返回 {key: value} 映射"""
+        try:
+            df = pd.read_excel(self.file_path, sheet_name="config", dtype=str)
+            df = df.replace({np.nan: None})
+            result = {}
+            for _, r in df.iterrows():
+                k = r.get("key")
+                v = r.get("value")
+                if k and v:
+                    result[k.strip()] = v.strip()
+            if result:
+                logger.info("config sheet 加载 %d 个变量: %s", len(result), list(result.keys()))
+            return result
+        except (ValueError, KeyError):
+            logger.debug("config sheet 不存在或为空，跳过")
+            return {}
+
+    def _replace_config_refs(self, val: str) -> str:
+        """替换 ${env.xxx} 为 config sheet 中的值"""
+        if "${env." not in val or not self._config_vars:
+            return val
+
+        def _repl(m):
+            key = m.group(1)
+            v = self._config_vars.get(key)
+            if v is None:
+                logger.warning("config sheet 变量不存在: %s", key)
+                return m.group(0)
+            return v
+
+        return re.sub(r"\$\{env\.([^}]+)}", _repl, val)
 
     @staticmethod
     def _is_enabled(rec: Dict) -> bool:
