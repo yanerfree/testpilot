@@ -22,7 +22,18 @@ except ImportError:
     print("pip install openpyxl")
     sys.exit(1)
 
-CALLBACK_URL = "http://10.10.1.207:8000/callback"
+CALLBACK_URL = "${env.callbackUrl}"
+UPLOAD_URL = "${env.uploadUrl}"
+ALARM_URL = "${env.alarmUrl}"
+MONITORING_URL = "${env.monitoringUrl}"
+LOG_SERVER_URL = "${env.logServerUrl}"
+CHSM_IMAGE_URL = "${env.chsmImageUrl}"
+CHSM_PACK_URL = "${env.chsmPackUrl}"
+CHSM_BACKUP_URL = "${env.chsmBackupUrl}"
+VSM_IMAGE_URL = "${env.vsmImageUrl}"
+VSM_PACK_URL = "${env.vsmPackUrl}"
+SIGN_BASE64 = "${env.signBase64}"
+SIGN_HEX = "${env.signHex}"
 
 HEADERS = [
     "case_id", "description", "host", "endpoint", "method",
@@ -241,16 +252,16 @@ def gen_configCHSMUploadAddress():
     EP = "/api/1.0/chsm/imageuploader"
     return [
         row("CHSM_UPLOAD_001", "configCHSMUploadAddress 正常配置", EP, 200,
-            jd({"requestId": "uuid", "url": "http://10.10.1.207:8080/upload"}),
+            jd({"requestId": "uuid", "url": UPLOAD_URL}),
             ref_case_id="CHSM_UPLOAD_001", section="7.1.6"),
         row("CHSM_UPLOAD_002", "configCHSMUploadAddress url空字符串", EP, 400,
             jd({"requestId": "uuid", "url": ""}),
             ref_case_id="CHSM_UPLOAD_002", section="7.1.6"),
         row("CHSM_UPLOAD_T01", "configCHSMUploadAddress requestId空字符串", EP, 400,
-            jd({"requestId": "", "url": "http://10.10.1.207:8080/upload"}),
+            jd({"requestId": "", "url": UPLOAD_URL}),
             section="7.1.6"),
         row("CHSM_UPLOAD_T02", "configCHSMUploadAddress 缺requestId", EP, 400,
-            jd({"url": "http://10.10.1.207:8080/upload"}),
+            jd({"url": UPLOAD_URL}),
             section="7.1.6"),
         row("CHSM_UPLOAD_T03", "configCHSMUploadAddress 缺url", EP, 400,
             jd({"requestId": "uuid"}),
@@ -268,7 +279,7 @@ def gen_configSyslogAddr():
             jd({"requestId": "uuid", "logServerType": "syslog", "logServerAddress": "10.10.1.100:514"}),
             ref_case_id="CHSM_SYSLOG_001", section="7.1.7"),
         row("CHSM_SYSLOG_002", "configSyslogAddr type=logserver", EP, 200,
-            jd({"requestId": "uuid", "logServerType": "logserver", "logServerAddress": "http://10.10.1.100:9200/logs"}),
+            jd({"requestId": "uuid", "logServerType": "logserver", "logServerAddress": LOG_SERVER_URL}),
             ref_case_id="CHSM_SYSLOG_002", section="7.1.7"),
         row("CHSM_SYSLOG_003", "configSyslogAddr type无效值", EP, 400,
             jd({"requestId": "uuid", "logServerType": "invalid", "logServerAddress": "10.10.1.100:514"}),
@@ -295,16 +306,16 @@ def gen_configCHSMAlarmAddress():
     EP = "/api/1.0/chsm/alarmaddress"
     return [
         row("CHSM_ALARM_001", "configCHSMAlarmAddress url+monitoringUrl", EP, 200,
-            jd({"requestId": "uuid", "url": "http://10.10.1.100:9090/alarm", "monitoringUrl": "http://10.10.1.100:9090/monitoring"}),
+            jd({"requestId": "uuid", "url": ALARM_URL, "monitoringUrl": MONITORING_URL}),
             ref_case_id="CHSM_ALARM_001", section="7.1.14"),
         row("CHSM_ALARM_002", "configCHSMAlarmAddress 只传url", EP, 200,
-            jd({"requestId": "uuid", "url": "http://10.10.1.100:9090/alarm"}),
+            jd({"requestId": "uuid", "url": ALARM_URL}),
             ref_case_id="CHSM_ALARM_002", section="7.1.14"),
         row("CHSM_ALARM_T01", "configCHSMAlarmAddress requestId空字符串", EP, 400,
-            jd({"requestId": "", "url": "http://10.10.1.100:9090/alarm"}),
+            jd({"requestId": "", "url": ALARM_URL}),
             section="7.1.14"),
         row("CHSM_ALARM_T02", "configCHSMAlarmAddress 缺requestId", EP, 400,
-            jd({"url": "http://10.10.1.100:9090/alarm"}),
+            jd({"url": ALARM_URL}),
             section="7.1.14"),
         row("CHSM_ALARM_T03", "configCHSMAlarmAddress 缺url", EP, 400,
             jd({"requestId": "uuid"}),
@@ -402,8 +413,8 @@ def gen_importCHSM():
     EP = "/api/1.0/chsm/image"
     BASE = {
         "requestId": "uuid", "oprType": "import",
-        "imageUrl": "http://192.168.0.1/chsm_image.zip",
-        "alg": "RSAWithSHA256", "sign": "PLACEHOLDER_SIGN_BASE64",
+        "imageUrl": CHSM_IMAGE_URL,
+        "alg": "RSAWithSHA256", "sign": SIGN_BASE64,
         "callbackUrl": CALLBACK_URL,
     }
     return [
@@ -443,8 +454,8 @@ def gen_upgradeCHSM():
     EP = "/api/1.0/chsm"
     BASE = {
         "requestId": "uuid", "oprType": "upgrade",
-        "packVersion": "2.0.1", "packUrl": "http://192.168.0.1/chsm_pack.bin",
-        "alg": "RSAWithSHA256", "sign": "PLACEHOLDER_SIGN_HEX",
+        "packVersion": "2.0.1", "packUrl": CHSM_PACK_URL,
+        "alg": "RSAWithSHA256", "sign": SIGN_HEX,
         "callbackUrl": CALLBACK_URL,
     }
     return [
@@ -520,8 +531,8 @@ def gen_restoreCHSM():
     EP = "/api/1.0/chsm"
     BASE = {
         "requestId": "uuid", "oprType": "restore",
-        "backupUrl": "http://192.168.0.1/chsm_backup.dat",
-        "alg": "RSAWithSHA256", "sign": "PLACEHOLDER_SIGN_BASE64",
+        "backupUrl": CHSM_BACKUP_URL,
+        "alg": "RSAWithSHA256", "sign": SIGN_BASE64,
         "callbackUrl": CALLBACK_URL,
     }
     return [
@@ -662,8 +673,8 @@ def gen_vsm_scenario():
     # --- importVSM ---
     IMP_BASE = {
         "requestId": "uuid", "oprType": "import", "vsmId": "${vsmId}",
-        "imageUrl": "http://192.168.0.1/vsm_image.zip",
-        "alg": "RSAWithSHA256", "sign": "PLACEHOLDER_SIGN_BASE64",
+        "imageUrl": VSM_IMAGE_URL,
+        "alg": "RSAWithSHA256", "sign": SIGN_BASE64,
         "callbackUrl": CALLBACK_URL,
     }
     add("VSM_IMPORT_001", "importVSM 正常导入", EP_VIMG, 200,
@@ -740,8 +751,8 @@ def gen_vsm_scenario():
     # --- upgradeVSM ---
     UPG_BASE = {
         "requestId": "uuid", "oprType": "upgrade", "vsmId": "${vsmId}",
-        "packVersion": "1.5.0", "packUrl": "http://192.168.0.1/vsm_pack.bin",
-        "alg": "RSAWithSHA256", "sign": "PLACEHOLDER_SIGN_HEX",
+        "packVersion": "1.5.0", "packUrl": VSM_PACK_URL,
+        "alg": "RSAWithSHA256", "sign": SIGN_HEX,
         "callbackUrl": CALLBACK_URL,
     }
     add("VSM_UPGRADE_001", "upgradeVSM 正常升级", EP_VSM, 200,
