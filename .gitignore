@@ -1,28 +1,15 @@
+# Claude Code 配置（含 API Token，禁止提交）
+.claude/
+
+# SSH 密钥目录
+.ssh/
+
+# 依赖目录
 node_modules/
 dist/
 .cache/
-*.log
 
-# IDE
-.vscode/
-.idea/
-
-# OS
+# 系统文件
 .DS_Store
-
-# Environment
-.env
-.env.local
-
-# TestPilot config (contains API key)
-.testpilotrc.json
-
-# Test environment config (contains credentials)
-tests/env.config.ts
-
-# Test results
-test-results/
-playwright-report/
-
-# Claude Code
-.claude/
+*.log
+aitest
