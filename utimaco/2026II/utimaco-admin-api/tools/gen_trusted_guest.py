@@ -557,220 +557,254 @@ def gen_restoreCHSM():
 
 
 # ================================================================
-# VSM 场景类 (SCN_VSM)
+# VSM 场景 + 独立用例 (按接口拆分，降低耦合)
 # ================================================================
 
-def gen_vsm_scenario():
-    """VSM 全部接口在 SCN_VSM 场景中执行, step 1 提取 vsmId"""
-    rows = []
-    step = 0
+EP_VSM = "/api/1.0/vsm"
+EP_VNET = "/api/1.0/vsm/network"
+EP_VTOK = "/api/1.0/vsm/token"
+EP_VIMG = "/api/1.0/vsm/image"
 
-    def add(case_id, desc, endpoint, expected_status, json_data,
-            ref_case_id=None, enabled="yes", section="", assert_rules=None,
-            save_vars=None, step_type="test"):
-        nonlocal step
-        step += 1
-        rows.append(row(
-            case_id, desc, endpoint, expected_status,
-            json_data=json_data, assert_rules=assert_rules,
-            ref_case_id=ref_case_id, enabled=enabled, section=section,
-            scenario_id="SCN_VSM", step=step, step_type=step_type,
-            save_vars=save_vars,
-        ))
+VSM_IMP_BASE = {
+    "requestId": "uuid", "oprType": "import", "vsmId": "${vsmId}",
+    "imageUrl": VSM_IMAGE_URL,
+    "alg": "RSAWithSHA256", "sign": SIGN_BASE64,
+    "callbackUrl": CALLBACK_URL,
+}
 
-    # --- setup: 获取 vsmId ---
-    add("VSM_SETUP_001", "SCN_VSM setup: getCHSMInfo取vsmId",
+VSM_UPG_BASE = {
+    "requestId": "uuid", "oprType": "upgrade", "vsmId": "${vsmId}",
+    "packVersion": "1.5.0", "packUrl": VSM_PACK_URL,
+    "alg": "RSAWithSHA256", "sign": SIGN_HEX,
+    "callbackUrl": CALLBACK_URL,
+}
+
+
+def _vsm_setup_row(scenario_id, suffix):
+    return row(
+        f"VSM_SETUP_{suffix}", f"{scenario_id} setup: getCHSMInfo取vsmId",
         "/api/1.0/chsm", 200,
-        jd({"requestId": "uuid", "oprType": "getinfo"}),
+        json_data=jd({"requestId": "uuid", "oprType": "getinfo"}),
         assert_rules=ok_with({"type": "json_contains", "key": "result.vsmIds"}),
-        step_type="setup", save_vars="vsmId=result.vsmIds[0]")
+        scenario_id=scenario_id, step=1, step_type="setup",
+        save_vars="vsmId=result.vsmIds[0]",
+    )
 
-    # --- getVSMInfo ---
-    EP_VSM = "/api/1.0/vsm"
-    add("VSM_INFO_001", "getVSMInfo 正常获取", EP_VSM, 200,
-        jd({"requestId": "uuid", "oprType": "getinfo", "vsmId": "${vsmId}"}),
-        assert_rules=ok_with(
-            {"type": "json_contains", "key": "result.id"},
-            {"type": "json_contains", "key": "result.version"},
-        ),
-        ref_case_id="VSM_INFO_001", section="7.2.1")
-    add("VSM_INFO_002", "getVSMInfo vsmId不存在", EP_VSM, 400,
-        jd({"requestId": "uuid", "oprType": "getinfo", "vsmId": "non_existent_id"}),
-        ref_case_id="VSM_INFO_002", section="7.2.1")
-    add("VSM_INFO_003", "getVSMInfo 缺vsmId", EP_VSM, 400,
-        jd({"requestId": "uuid", "oprType": "getinfo"}),
-        ref_case_id="VSM_INFO_003", section="7.2.1")
-    add("VSM_INFO_T01", "getVSMInfo requestId空字符串", EP_VSM, 400,
-        jd({"requestId": "", "oprType": "getinfo", "vsmId": "${vsmId}"}),
-        section="7.2.1")
-    add("VSM_INFO_T02", "getVSMInfo 缺requestId", EP_VSM, 400,
-        jd({"oprType": "getinfo", "vsmId": "${vsmId}"}),
-        section="7.2.1")
-    add("VSM_INFO_T03", "getVSMInfo oprType缺失", EP_VSM, 400,
-        jd({"requestId": "uuid", "vsmId": "${vsmId}"}),
-        section="7.2.1")
-    add("VSM_INFO_T04", "getVSMInfo vsmId空字符串", EP_VSM, 400,
-        jd({"requestId": "uuid", "oprType": "getinfo", "vsmId": ""}),
-        section="7.2.1")
 
-    # --- configVSMNet ---
-    EP_VNET = "/api/1.0/vsm/network"
-    add("VSM_NET_001", "configVSMNet 正常配置IPv4", EP_VNET, 200,
-        jd({"requestId": "uuid", "vsmId": "${vsmId}", "ip": "192.168.10.100", "mask": "255.255.255.0", "gateway": "192.168.10.1"}),
-        ref_case_id="VSM_NET_001", section="7.2.3")
-    add("VSM_NET_002", "configVSMNet IPv6", EP_VNET, 200,
-        jd({"requestId": "uuid", "vsmId": "${vsmId}", "ip": "fd00::100", "mask": "64", "gateway": "fd00::1"}),
-        ref_case_id="VSM_NET_002", section="7.2.3")
-    add("VSM_NET_T01", "configVSMNet requestId空字符串", EP_VNET, 400,
-        jd({"requestId": "", "vsmId": "${vsmId}", "ip": "192.168.10.100", "mask": "255.255.255.0", "gateway": "192.168.10.1"}),
-        section="7.2.3")
-    add("VSM_NET_T02", "configVSMNet 缺requestId", EP_VNET, 400,
-        jd({"vsmId": "${vsmId}", "ip": "192.168.10.100", "mask": "255.255.255.0", "gateway": "192.168.10.1"}),
-        section="7.2.3")
-    add("VSM_NET_T03", "configVSMNet 缺vsmId", EP_VNET, 400,
-        jd({"requestId": "uuid", "ip": "192.168.10.100", "mask": "255.255.255.0", "gateway": "192.168.10.1"}),
-        section="7.2.3")
-    add("VSM_NET_T04", "configVSMNet 缺ip", EP_VNET, 400,
-        jd({"requestId": "uuid", "vsmId": "${vsmId}", "mask": "255.255.255.0", "gateway": "192.168.10.1"}),
-        section="7.2.3")
-    add("VSM_NET_T05", "configVSMNet ip无效格式", EP_VNET, 400,
-        jd({"requestId": "uuid", "vsmId": "${vsmId}", "ip": "999.999.999.999", "mask": "255.255.255.0", "gateway": "192.168.10.1"}),
-        section="7.2.3")
+def _scn(scenario_id, suffix, test_rows):
+    result = [_vsm_setup_row(scenario_id, suffix)]
+    for i, r in enumerate(test_rows, 2):
+        r["scenario_id"] = scenario_id
+        r["step"] = i
+        if not r.get("step_type"):
+            r["step_type"] = "test"
+        result.append(r)
+    return result
 
-    # --- configVSMToken ---
-    EP_VTOK = "/api/1.0/vsm/token"
-    add("VSM_TOKEN_001", "configVSMToken 正常配置", EP_VTOK, 200,
-        jd({"requestId": "uuid", "vsmId": "${vsmId}", "token": "test_token_123", "tenantId": "tenant_001"}),
-        ref_case_id="VSM_TOKEN_001", section="7.2.4")
-    add("VSM_TOKEN_002", "configVSMToken token=0释放", EP_VTOK, 200,
-        jd({"requestId": "uuid", "vsmId": "${vsmId}", "token": "0"}),
-        ref_case_id="VSM_TOKEN_002", section="7.2.4")
-    add("VSM_TOKEN_T01", "configVSMToken requestId空字符串", EP_VTOK, 400,
-        jd({"requestId": "", "vsmId": "${vsmId}", "token": "test_token", "tenantId": "tenant_001"}),
-        section="7.2.4")
-    add("VSM_TOKEN_T02", "configVSMToken 缺requestId", EP_VTOK, 400,
-        jd({"vsmId": "${vsmId}", "token": "test_token", "tenantId": "tenant_001"}),
-        section="7.2.4")
-    add("VSM_TOKEN_T03", "configVSMToken 缺vsmId", EP_VTOK, 400,
-        jd({"requestId": "uuid", "token": "test_token", "tenantId": "tenant_001"}),
-        section="7.2.4")
 
-    # --- exportVSM ---
-    EP_VIMG = "/api/1.0/vsm/image"
-    add("VSM_EXPORT_001", "exportVSM 正常导出", EP_VIMG, 200,
-        jd({"requestId": "uuid", "oprType": "export", "vsmId": "${vsmId}", "callbackUrl": CALLBACK_URL}),
-        ref_case_id="VSM_EXPORT_001", section="7.2.5")
-    add("VSM_EXPORT_T01", "exportVSM requestId空字符串", EP_VIMG, 400,
-        jd({"requestId": "", "oprType": "export", "vsmId": "${vsmId}", "callbackUrl": CALLBACK_URL}),
-        section="7.2.5")
-    add("VSM_EXPORT_T02", "exportVSM 缺vsmId", EP_VIMG, 400,
-        jd({"requestId": "uuid", "oprType": "export", "callbackUrl": CALLBACK_URL}),
-        section="7.2.5")
-    add("VSM_EXPORT_T03", "exportVSM 缺callbackUrl", EP_VIMG, 400,
-        jd({"requestId": "uuid", "oprType": "export", "vsmId": "${vsmId}"}),
-        section="7.2.5")
+def gen_vsm_info_scenario():
+    return _scn("SCN_VSM_INFO", "INFO", [
+        row("VSM_INFO_001", "getVSMInfo 正常获取", EP_VSM, 200,
+            jd({"requestId": "uuid", "oprType": "getinfo", "vsmId": "${vsmId}"}),
+            assert_rules=ok_with(
+                {"type": "json_contains", "key": "result.id"},
+                {"type": "json_contains", "key": "result.version"},
+            ),
+            ref_case_id="VSM_INFO_001", section="7.2.1"),
+        row("VSM_INFO_T01", "getVSMInfo requestId空字符串", EP_VSM, 400,
+            jd({"requestId": "", "oprType": "getinfo", "vsmId": "${vsmId}"}),
+            section="7.2.1"),
+        row("VSM_INFO_T02", "getVSMInfo 缺requestId", EP_VSM, 400,
+            jd({"oprType": "getinfo", "vsmId": "${vsmId}"}),
+            section="7.2.1"),
+        row("VSM_INFO_T03", "getVSMInfo oprType缺失", EP_VSM, 400,
+            jd({"requestId": "uuid", "vsmId": "${vsmId}"}),
+            section="7.2.1"),
+    ])
 
-    # --- importVSM ---
-    IMP_BASE = {
-        "requestId": "uuid", "oprType": "import", "vsmId": "${vsmId}",
-        "imageUrl": VSM_IMAGE_URL,
-        "alg": "RSAWithSHA256", "sign": SIGN_BASE64,
-        "callbackUrl": CALLBACK_URL,
-    }
-    add("VSM_IMPORT_001", "importVSM 正常导入", EP_VIMG, 200,
-        jd(IMP_BASE), ref_case_id="VSM_IMPORT_001", section="7.2.6", enabled="no")
-    add("VSM_IMPORT_T01", "importVSM requestId空字符串", EP_VIMG, 400,
-        jd({**IMP_BASE, "requestId": ""}),
-        section="7.2.6")
-    add("VSM_IMPORT_T02", "importVSM 缺vsmId", EP_VIMG, 400,
-        jd({k: v for k, v in IMP_BASE.items() if k != "vsmId"}),
-        section="7.2.6")
-    add("VSM_IMPORT_T03", "importVSM 缺alg", EP_VIMG, 400,
-        jd({k: v for k, v in IMP_BASE.items() if k != "alg"}),
-        section="7.2.6")
 
-    # --- startVSM ---
-    add("VSM_START_001", "startVSM 正常启动", EP_VSM, 200,
-        jd({"requestId": "uuid", "oprType": "start", "vsmId": "${vsmId}", "callbackUrl": CALLBACK_URL}),
-        ref_case_id="VSM_START_001", section="7.2.7")
-    add("VSM_START_002", "startVSM vsmId不存在", EP_VSM, 400,
-        jd({"requestId": "uuid", "oprType": "start", "vsmId": "non_existent_id", "callbackUrl": CALLBACK_URL}),
-        ref_case_id="VSM_START_002", section="7.2.7")
-    add("VSM_START_T01", "startVSM requestId空字符串", EP_VSM, 400,
-        jd({"requestId": "", "oprType": "start", "vsmId": "${vsmId}", "callbackUrl": CALLBACK_URL}),
-        section="7.2.7")
-    add("VSM_START_T02", "startVSM 缺vsmId", EP_VSM, 400,
-        jd({"requestId": "uuid", "oprType": "start", "callbackUrl": CALLBACK_URL}),
-        section="7.2.7")
-    add("VSM_START_T03", "startVSM oprType缺失", EP_VSM, 400,
-        jd({"requestId": "uuid", "vsmId": "${vsmId}", "callbackUrl": CALLBACK_URL}),
-        section="7.2.7")
+def gen_vsm_net_scenario():
+    return _scn("SCN_VSM_NET", "NET", [
+        row("VSM_NET_001", "configVSMNet 正常配置IPv4", EP_VNET, 200,
+            jd({"requestId": "uuid", "vsmId": "${vsmId}", "ip": "192.168.10.100", "mask": "255.255.255.0", "gateway": "192.168.10.1"}),
+            ref_case_id="VSM_NET_001", section="7.2.3"),
+        row("VSM_NET_002", "configVSMNet IPv6", EP_VNET, 200,
+            jd({"requestId": "uuid", "vsmId": "${vsmId}", "ip": "fd00::100", "mask": "64", "gateway": "fd00::1"}),
+            ref_case_id="VSM_NET_002", section="7.2.3"),
+        row("VSM_NET_T01", "configVSMNet requestId空字符串", EP_VNET, 400,
+            jd({"requestId": "", "vsmId": "${vsmId}", "ip": "192.168.10.100", "mask": "255.255.255.0", "gateway": "192.168.10.1"}),
+            section="7.2.3"),
+        row("VSM_NET_T02", "configVSMNet 缺requestId", EP_VNET, 400,
+            jd({"vsmId": "${vsmId}", "ip": "192.168.10.100", "mask": "255.255.255.0", "gateway": "192.168.10.1"}),
+            section="7.2.3"),
+        row("VSM_NET_T04", "configVSMNet 缺ip", EP_VNET, 400,
+            jd({"requestId": "uuid", "vsmId": "${vsmId}", "mask": "255.255.255.0", "gateway": "192.168.10.1"}),
+            section="7.2.3"),
+        row("VSM_NET_T05", "configVSMNet ip无效格式", EP_VNET, 400,
+            jd({"requestId": "uuid", "vsmId": "${vsmId}", "ip": "999.999.999.999", "mask": "255.255.255.0", "gateway": "192.168.10.1"}),
+            section="7.2.3"),
+    ])
 
-    # --- stopVSM ---
-    add("VSM_STOP_001", "stopVSM 正常停止", EP_VSM, 200,
-        jd({"requestId": "uuid", "oprType": "stop", "vsmId": "${vsmId}", "callbackUrl": CALLBACK_URL}),
-        ref_case_id="VSM_STOP_001", section="7.2.8")
-    add("VSM_STOP_002", "stopVSM vsmId不存在", EP_VSM, 400,
-        jd({"requestId": "uuid", "oprType": "stop", "vsmId": "non_existent_id", "callbackUrl": CALLBACK_URL}),
-        ref_case_id="VSM_STOP_002", section="7.2.8")
-    add("VSM_STOP_T01", "stopVSM requestId空字符串", EP_VSM, 400,
-        jd({"requestId": "", "oprType": "stop", "vsmId": "${vsmId}", "callbackUrl": CALLBACK_URL}),
-        section="7.2.8")
-    add("VSM_STOP_T02", "stopVSM 缺vsmId", EP_VSM, 400,
-        jd({"requestId": "uuid", "oprType": "stop", "callbackUrl": CALLBACK_URL}),
-        section="7.2.8")
 
-    # --- restartVSM ---
-    add("VSM_RESTART_001", "restartVSM 正常重启", EP_VSM, 200,
-        jd({"requestId": "uuid", "oprType": "restart", "vsmId": "${vsmId}", "callbackUrl": CALLBACK_URL}),
-        ref_case_id="VSM_RESTART_001", section="7.2.9")
-    add("VSM_RESTART_002", "restartVSM vsmId不存在", EP_VSM, 400,
-        jd({"requestId": "uuid", "oprType": "restart", "vsmId": "non_existent_id", "callbackUrl": CALLBACK_URL}),
-        ref_case_id="VSM_RESTART_002", section="7.2.9")
-    add("VSM_RESTART_T01", "restartVSM requestId空字符串", EP_VSM, 400,
-        jd({"requestId": "", "oprType": "restart", "vsmId": "${vsmId}", "callbackUrl": CALLBACK_URL}),
-        section="7.2.9")
-    add("VSM_RESTART_T02", "restartVSM 缺vsmId", EP_VSM, 400,
-        jd({"requestId": "uuid", "oprType": "restart", "callbackUrl": CALLBACK_URL}),
-        section="7.2.9")
+def gen_vsm_token_scenario():
+    return _scn("SCN_VSM_TOKEN", "TOKEN", [
+        row("VSM_TOKEN_001", "configVSMToken 正常配置", EP_VTOK, 200,
+            jd({"requestId": "uuid", "vsmId": "${vsmId}", "token": "test_token_123", "tenantId": "tenant_001"}),
+            ref_case_id="VSM_TOKEN_001", section="7.2.4"),
+        row("VSM_TOKEN_002", "configVSMToken token=0释放", EP_VTOK, 200,
+            jd({"requestId": "uuid", "vsmId": "${vsmId}", "token": "0"}),
+            ref_case_id="VSM_TOKEN_002", section="7.2.4"),
+        row("VSM_TOKEN_T01", "configVSMToken requestId空字符串", EP_VTOK, 400,
+            jd({"requestId": "", "vsmId": "${vsmId}", "token": "test_token", "tenantId": "tenant_001"}),
+            section="7.2.4"),
+        row("VSM_TOKEN_T02", "configVSMToken 缺requestId", EP_VTOK, 400,
+            jd({"vsmId": "${vsmId}", "token": "test_token", "tenantId": "tenant_001"}),
+            section="7.2.4"),
+    ])
 
-    # --- resetVSM ---
-    add("VSM_RESET_001", "resetVSM 正常重置", EP_VSM, 200,
-        jd({"requestId": "uuid", "oprType": "reset", "vsmId": "${vsmId}", "callbackUrl": CALLBACK_URL}),
-        ref_case_id="VSM_RESET_001", section="7.2.10", enabled="no")
-    add("VSM_RESET_002", "resetVSM vsmId不存在", EP_VSM, 400,
-        jd({"requestId": "uuid", "oprType": "reset", "vsmId": "non_existent_id", "callbackUrl": CALLBACK_URL}),
-        ref_case_id="VSM_RESET_002", section="7.2.10")
-    add("VSM_RESET_T01", "resetVSM requestId空字符串", EP_VSM, 400,
-        jd({"requestId": "", "oprType": "reset", "vsmId": "${vsmId}", "callbackUrl": CALLBACK_URL}),
-        section="7.2.10")
-    add("VSM_RESET_T02", "resetVSM 缺vsmId", EP_VSM, 400,
-        jd({"requestId": "uuid", "oprType": "reset", "callbackUrl": CALLBACK_URL}),
-        section="7.2.10")
 
-    # --- upgradeVSM ---
-    UPG_BASE = {
-        "requestId": "uuid", "oprType": "upgrade", "vsmId": "${vsmId}",
-        "packVersion": "1.5.0", "packUrl": VSM_PACK_URL,
-        "alg": "RSAWithSHA256", "sign": SIGN_HEX,
-        "callbackUrl": CALLBACK_URL,
-    }
-    add("VSM_UPGRADE_001", "upgradeVSM 正常升级", EP_VSM, 200,
-        jd(UPG_BASE), ref_case_id="VSM_UPGRADE_001", section="7.2.11", enabled="no")
-    add("VSM_UPGRADE_T01", "upgradeVSM requestId空字符串", EP_VSM, 400,
-        jd({**UPG_BASE, "requestId": ""}),
-        section="7.2.11")
-    add("VSM_UPGRADE_T02", "upgradeVSM 缺vsmId", EP_VSM, 400,
-        jd({k: v for k, v in UPG_BASE.items() if k != "vsmId"}),
-        section="7.2.11")
-    add("VSM_UPGRADE_T03", "upgradeVSM 缺packVersion", EP_VSM, 400,
-        jd({k: v for k, v in UPG_BASE.items() if k != "packVersion"}),
-        section="7.2.11")
-    add("VSM_UPGRADE_T04", "upgradeVSM 缺callbackUrl", EP_VSM, 400,
-        jd({k: v for k, v in UPG_BASE.items() if k != "callbackUrl"}),
-        section="7.2.11")
+def gen_vsm_export_scenario():
+    return _scn("SCN_VSM_EXPORT", "EXPORT", [
+        row("VSM_EXPORT_001", "exportVSM 正常导出", EP_VIMG, 200,
+            jd({"requestId": "uuid", "oprType": "export", "vsmId": "${vsmId}", "callbackUrl": CALLBACK_URL}),
+            ref_case_id="VSM_EXPORT_001", section="7.2.5"),
+        row("VSM_EXPORT_T01", "exportVSM requestId空字符串", EP_VIMG, 400,
+            jd({"requestId": "", "oprType": "export", "vsmId": "${vsmId}", "callbackUrl": CALLBACK_URL}),
+            section="7.2.5"),
+        row("VSM_EXPORT_T03", "exportVSM 缺callbackUrl", EP_VIMG, 400,
+            jd({"requestId": "uuid", "oprType": "export", "vsmId": "${vsmId}"}),
+            section="7.2.5"),
+    ])
 
-    return rows
+
+def gen_vsm_import_scenario():
+    return _scn("SCN_VSM_IMPORT", "IMPORT", [
+        row("VSM_IMPORT_001", "importVSM 正常导入", EP_VIMG, 200,
+            jd(VSM_IMP_BASE), ref_case_id="VSM_IMPORT_001", section="7.2.6", enabled="no"),
+        row("VSM_IMPORT_T01", "importVSM requestId空字符串", EP_VIMG, 400,
+            jd({**VSM_IMP_BASE, "requestId": ""}),
+            section="7.2.6"),
+        row("VSM_IMPORT_T03", "importVSM 缺alg", EP_VIMG, 400,
+            jd({k: v for k, v in VSM_IMP_BASE.items() if k != "alg"}),
+            section="7.2.6"),
+    ])
+
+
+def gen_vsm_start_scenario():
+    return _scn("SCN_VSM_START", "START", [
+        row("VSM_START_001", "startVSM 正常启动", EP_VSM, 200,
+            jd({"requestId": "uuid", "oprType": "start", "vsmId": "${vsmId}", "callbackUrl": CALLBACK_URL}),
+            ref_case_id="VSM_START_001", section="7.2.7"),
+        row("VSM_START_T01", "startVSM requestId空字符串", EP_VSM, 400,
+            jd({"requestId": "", "oprType": "start", "vsmId": "${vsmId}", "callbackUrl": CALLBACK_URL}),
+            section="7.2.7"),
+        row("VSM_START_T03", "startVSM oprType缺失", EP_VSM, 400,
+            jd({"requestId": "uuid", "vsmId": "${vsmId}", "callbackUrl": CALLBACK_URL}),
+            section="7.2.7"),
+    ])
+
+
+def gen_vsm_stop_scenario():
+    return _scn("SCN_VSM_STOP", "STOP", [
+        row("VSM_STOP_001", "stopVSM 正常停止", EP_VSM, 200,
+            jd({"requestId": "uuid", "oprType": "stop", "vsmId": "${vsmId}", "callbackUrl": CALLBACK_URL}),
+            ref_case_id="VSM_STOP_001", section="7.2.8"),
+        row("VSM_STOP_T01", "stopVSM requestId空字符串", EP_VSM, 400,
+            jd({"requestId": "", "oprType": "stop", "vsmId": "${vsmId}", "callbackUrl": CALLBACK_URL}),
+            section="7.2.8"),
+    ])
+
+
+def gen_vsm_restart_scenario():
+    return _scn("SCN_VSM_RESTART", "RESTART", [
+        row("VSM_RESTART_001", "restartVSM 正常重启", EP_VSM, 200,
+            jd({"requestId": "uuid", "oprType": "restart", "vsmId": "${vsmId}", "callbackUrl": CALLBACK_URL}),
+            ref_case_id="VSM_RESTART_001", section="7.2.9"),
+        row("VSM_RESTART_T01", "restartVSM requestId空字符串", EP_VSM, 400,
+            jd({"requestId": "", "oprType": "restart", "vsmId": "${vsmId}", "callbackUrl": CALLBACK_URL}),
+            section="7.2.9"),
+    ])
+
+
+def gen_vsm_reset_scenario():
+    return _scn("SCN_VSM_RESET", "RESET", [
+        row("VSM_RESET_001", "resetVSM 正常重置", EP_VSM, 200,
+            jd({"requestId": "uuid", "oprType": "reset", "vsmId": "${vsmId}", "callbackUrl": CALLBACK_URL}),
+            ref_case_id="VSM_RESET_001", section="7.2.10", enabled="no"),
+        row("VSM_RESET_T01", "resetVSM requestId空字符串", EP_VSM, 400,
+            jd({"requestId": "", "oprType": "reset", "vsmId": "${vsmId}", "callbackUrl": CALLBACK_URL}),
+            section="7.2.10"),
+    ])
+
+
+def gen_vsm_upgrade_scenario():
+    return _scn("SCN_VSM_UPGRADE", "UPGRADE", [
+        row("VSM_UPGRADE_001", "upgradeVSM 正常升级", EP_VSM, 200,
+            jd(VSM_UPG_BASE), ref_case_id="VSM_UPGRADE_001", section="7.2.11", enabled="no"),
+        row("VSM_UPGRADE_T01", "upgradeVSM requestId空字符串", EP_VSM, 400,
+            jd({**VSM_UPG_BASE, "requestId": ""}),
+            section="7.2.11"),
+        row("VSM_UPGRADE_T03", "upgradeVSM 缺packVersion", EP_VSM, 400,
+            jd({k: v for k, v in VSM_UPG_BASE.items() if k != "packVersion"}),
+            section="7.2.11"),
+        row("VSM_UPGRADE_T04", "upgradeVSM 缺callbackUrl", EP_VSM, 400,
+            jd({k: v for k, v in VSM_UPG_BASE.items() if k != "callbackUrl"}),
+            section="7.2.11"),
+    ])
+
+
+def gen_vsm_standalone():
+    """不需要 vsmId 的 VSM 独立用例 (无场景编排)"""
+    return [
+        row("VSM_INFO_002", "getVSMInfo vsmId不存在", EP_VSM, 400,
+            jd({"requestId": "uuid", "oprType": "getinfo", "vsmId": "non_existent_id"}),
+            ref_case_id="VSM_INFO_002", section="7.2.1"),
+        row("VSM_INFO_003", "getVSMInfo 缺vsmId", EP_VSM, 400,
+            jd({"requestId": "uuid", "oprType": "getinfo"}),
+            ref_case_id="VSM_INFO_003", section="7.2.1"),
+        row("VSM_INFO_T04", "getVSMInfo vsmId空字符串", EP_VSM, 400,
+            jd({"requestId": "uuid", "oprType": "getinfo", "vsmId": ""}),
+            section="7.2.1"),
+        row("VSM_NET_T03", "configVSMNet 缺vsmId", EP_VNET, 400,
+            jd({"requestId": "uuid", "ip": "192.168.10.100", "mask": "255.255.255.0", "gateway": "192.168.10.1"}),
+            section="7.2.3"),
+        row("VSM_TOKEN_T03", "configVSMToken 缺vsmId", EP_VTOK, 400,
+            jd({"requestId": "uuid", "token": "test_token", "tenantId": "tenant_001"}),
+            section="7.2.4"),
+        row("VSM_EXPORT_T02", "exportVSM 缺vsmId", EP_VIMG, 400,
+            jd({"requestId": "uuid", "oprType": "export", "callbackUrl": CALLBACK_URL}),
+            section="7.2.5"),
+        row("VSM_IMPORT_T02", "importVSM 缺vsmId", EP_VIMG, 400,
+            jd({k: v for k, v in VSM_IMP_BASE.items() if k != "vsmId"}),
+            section="7.2.6"),
+        row("VSM_START_002", "startVSM vsmId不存在", EP_VSM, 400,
+            jd({"requestId": "uuid", "oprType": "start", "vsmId": "non_existent_id", "callbackUrl": CALLBACK_URL}),
+            ref_case_id="VSM_START_002", section="7.2.7"),
+        row("VSM_START_T02", "startVSM 缺vsmId", EP_VSM, 400,
+            jd({"requestId": "uuid", "oprType": "start", "callbackUrl": CALLBACK_URL}),
+            section="7.2.7"),
+        row("VSM_STOP_002", "stopVSM vsmId不存在", EP_VSM, 400,
+            jd({"requestId": "uuid", "oprType": "stop", "vsmId": "non_existent_id", "callbackUrl": CALLBACK_URL}),
+            ref_case_id="VSM_STOP_002", section="7.2.8"),
+        row("VSM_STOP_T02", "stopVSM 缺vsmId", EP_VSM, 400,
+            jd({"requestId": "uuid", "oprType": "stop", "callbackUrl": CALLBACK_URL}),
+            section="7.2.8"),
+        row("VSM_RESTART_002", "restartVSM vsmId不存在", EP_VSM, 400,
+            jd({"requestId": "uuid", "oprType": "restart", "vsmId": "non_existent_id", "callbackUrl": CALLBACK_URL}),
+            ref_case_id="VSM_RESTART_002", section="7.2.9"),
+        row("VSM_RESTART_T02", "restartVSM 缺vsmId", EP_VSM, 400,
+            jd({"requestId": "uuid", "oprType": "restart", "callbackUrl": CALLBACK_URL}),
+            section="7.2.9"),
+        row("VSM_RESET_002", "resetVSM vsmId不存在", EP_VSM, 400,
+            jd({"requestId": "uuid", "oprType": "reset", "vsmId": "non_existent_id", "callbackUrl": CALLBACK_URL}),
+            ref_case_id="VSM_RESET_002", section="7.2.10"),
+        row("VSM_RESET_T02", "resetVSM 缺vsmId", EP_VSM, 400,
+            jd({"requestId": "uuid", "oprType": "reset", "callbackUrl": CALLBACK_URL}),
+            section="7.2.10"),
+        row("VSM_UPGRADE_T02", "upgradeVSM 缺vsmId", EP_VSM, 400,
+            jd({k: v for k, v in VSM_UPG_BASE.items() if k != "vsmId"}),
+            section="7.2.11"),
+    ]
 
 
 # ================================================================
@@ -855,7 +889,15 @@ def main():
         gen_restartCHSM, gen_backupCHSM, gen_restoreCHSM,
     ]:
         trusted_data.extend(gen_fn())
-    trusted_data.extend(gen_vsm_scenario())
+    for vsm_fn in [
+        gen_vsm_info_scenario, gen_vsm_net_scenario, gen_vsm_token_scenario,
+        gen_vsm_export_scenario, gen_vsm_import_scenario,
+        gen_vsm_start_scenario, gen_vsm_stop_scenario,
+        gen_vsm_restart_scenario, gen_vsm_reset_scenario,
+        gen_vsm_upgrade_scenario,
+    ]:
+        trusted_data.extend(vsm_fn())
+    trusted_data.extend(gen_vsm_standalone())
 
     ws_t = wb.create_sheet("trusted")
     write_sheet(ws_t, trusted_data)
