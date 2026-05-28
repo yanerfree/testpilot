@@ -5,6 +5,7 @@ import openpyxl
 from openpyxl.styles import Font, Alignment, PatternFill, Border, Side
 from openpyxl.utils import get_column_letter
 import json
+import os
 
 HEADERS = [
     '用例ID', '测试模块', '接口名称', '接口路径', '请求方法',
@@ -1662,7 +1663,7 @@ def write_excel(cases, output_path):
 
 if __name__ == '__main__':
     cases = generate_all_cases()
-    output = '/home/dreamer/utimaco/2026II/华为云密码机二期-接口测试用例.xlsx'
+    output = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "data", "华为云密码机二期-接口测试用例.xlsx")
     count = write_excel(cases, output)
     print(f"生成完成！共 {count} 条测试用例")
     print(f"文件路径: {output}")

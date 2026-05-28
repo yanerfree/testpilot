@@ -7,6 +7,7 @@
 """
 
 import json
+import os
 import re
 from typing import Any, Dict, List, Optional
 
@@ -17,8 +18,9 @@ from openpyxl.utils import get_column_letter
 import pandas as pd
 
 # ── 文件路径 ──────────────────────────────────────────
-TC_FILE = "/home/dreamer/utimaco/2026II/华为云密码机二期-接口测试用例.xlsx"
-TD_FILE = "/home/dreamer/utimaco/2026II/utimaco-admin-api/data/test_data.xlsx"
+_PROJECT_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+TC_FILE = os.path.join(_PROJECT_DIR, "data", "华为云密码机二期-接口测试用例.xlsx")
+TD_FILE = os.path.join(_PROJECT_DIR, "data", "test_data.xlsx")
 TC_SHEET = "管理接口"
 
 # ── 测试用例列 ────────────────────────────────────────
