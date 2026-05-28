@@ -778,7 +778,9 @@ def gen_vsm_scenario():
 # ================================================================
 
 def gen_guest():
+    ERR403 = json.dumps([{"type": "status_code", "expected_code": 403}], ensure_ascii=False)
     return [
+        # --- getCHSMStatus (GET, 无需认证) ---
         row("GUEST_STATUS_001", "getCHSMStatus 正常(无认证)", "/api/1.0/chsm/status", 200,
             params="requestId=uuid", method="GET",
             assert_rules=ok_with({"type": "json_contains", "key": "result.status"}),
@@ -786,23 +788,36 @@ def gen_guest():
         row("GUEST_STATUS_T01", "getCHSMStatus requestId空", "/api/1.0/chsm/status", 400,
             params="requestId=", method="GET"),
         row("GUEST_STATUS_T02", "getCHSMStatus 缺requestId", "/api/1.0/chsm/status", 400,
-            method="GET"),
+            method="GET", ref_case_id="CHSM_STATUS_002"),
+        # --- getCHSMAllStatus (GET, 无需认证) ---
         row("GUEST_ALLSTATUS_001", "getCHSMAllStatus 正常(无认证)", "/api/1.0/chsm/allstatus", 200,
             params="requestId=uuid", method="GET",
             assert_rules=ok_with({"type": "json_contains", "key": "result.hsmStatus"}),
             ref_case_id="CHSM_ALLSTATUS_001"),
+        row("GUEST_ALLSTATUS_002", "getCHSMAllStatus 无VSM时vsmStatusMap为空", "/api/1.0/chsm/allstatus", 200,
+            params="requestId=uuid", method="GET",
+            assert_rules=ok_with({"type": "json_contains", "key": "result.hsmStatus"}),
+            ref_case_id="CHSM_ALLSTATUS_002", enabled="no"),
         row("GUEST_ALLSTATUS_T01", "getCHSMAllStatus requestId空", "/api/1.0/chsm/allstatus", 400,
             params="requestId=", method="GET"),
         row("GUEST_ALLSTATUS_T02", "getCHSMAllStatus 缺requestId", "/api/1.0/chsm/allstatus", 400,
             method="GET"),
+        # --- getVSMStatus (GET, 无需认证) ---
         row("GUEST_VSM_STATUS_001", "getVSMStatus 正常(无认证)", "/api/1.0/vsm/status", 200,
             params="requestId=uuid&vsmId=待确认", method="GET",
             assert_rules=ok_with({"type": "json_contains", "key": "result.status"}),
             ref_case_id="VSM_STATUS_001", enabled="no"),
+        row("GUEST_VSM_STATUS_002", "getVSMStatus vsmId不存在", "/api/1.0/vsm/status", 400,
+            params="requestId=uuid&vsmId=non_existent_id", method="GET",
+            ref_case_id="VSM_STATUS_002"),
         row("GUEST_VSM_STATUS_T01", "getVSMStatus 缺requestId", "/api/1.0/vsm/status", 400,
             params="vsmId=待确认", method="GET", enabled="no"),
         row("GUEST_VSM_STATUS_T02", "getVSMStatus 缺vsmId", "/api/1.0/vsm/status", 400,
             params="requestId=uuid", method="GET"),
+        # --- 认证异常: trusted接口不带认证头 → 403 ---
+        row("GUEST_AUTH_403", "getCHSMInfo 不带认证头(trusted接口)", "/api/1.0/chsm", 403,
+            json_data=jd({"requestId": "uuid", "oprType": "getinfo"}),
+            assert_rules=ERR403, ref_case_id="CHSM_INFO_005"),
     ]
 
 
