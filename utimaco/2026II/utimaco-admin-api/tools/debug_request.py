@@ -25,15 +25,14 @@ logging.getLogger("utimaco").addHandler(logging.NullHandler())
 # 修改这里 ↓↓↓   （取消注释你要用的示例，注释掉其他的）
 # ============================================================
 
-# --- 示例1: POST JSON（配置公钥） ---
+# --- 示例1: POST JSON（配置 cloudToken） ---
 HOST = None
 METHOD = "POST"
-ENDPOINT = "/api/1.0/chsm/authpk"
+ENDPOINT = "/api/1.0/chsm/cloudtoken"
 AUTH = True
 BODY = {
     "requestId": "uuid",
-    "algorithm": "rsa",
-    "pks": ["MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8A..."]
+    "cloudToken": "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVC88.test_token_value"
 }
 PARAMS = None
 FILE_PATH = None
@@ -115,10 +114,31 @@ def main():
         print(f"\n请求失败: {e}")
         return
 
-    print(f"\n状态码: {resp.status_code}")
-    print(f"耗时:   {resp.elapsed.total_seconds():.3f}s")
-    print("=" * 60)
+    # 打印实际发出的完整请求
+    req = resp.request
+    print(f"\n{'─'*60}")
+    print(f"▶ 实际请求")
+    print(f"{'─'*60}")
+    print(f"{req.method} {req.url}")
+    print(f"\n[请求头]")
+    for k, v in req.headers.items():
+        print(f"  {k}: {v}")
+    if req.body:
+        print(f"\n[请求体]")
+        body_str = req.body if isinstance(req.body, str) else req.body.decode("utf-8", errors="replace")
+        try:
+            print(f"  {json.dumps(json.loads(body_str), ensure_ascii=False, indent=2)}")
+        except Exception:
+            print(f"  {body_str[:2000]}")
 
+    # 打印响应
+    print(f"\n{'─'*60}")
+    print(f"◀ 响应  {resp.status_code}  {resp.elapsed.total_seconds():.3f}s")
+    print(f"{'─'*60}")
+    print(f"\n[响应头]")
+    for k, v in resp.headers.items():
+        print(f"  {k}: {v}")
+    print(f"\n[响应体]")
     try:
         print(json.dumps(resp.json(), ensure_ascii=False, indent=2))
     except Exception:

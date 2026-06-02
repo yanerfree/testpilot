@@ -3,11 +3,13 @@ Excel 测试数据驱动 — 读取 test_data.xlsx，自动处理字段类型转
 
 Excel 列约定:
   基础列 (必填):
-    case_id | description | host | endpoint | method | params | json_data | expected_status | assert_rules
+    case_id | description | endpoint | method | params | json_data | expected_status | assert_rules
 
-  控制列 (可选):
+  可选列:
+    host         — 覆盖 base_url（不填使用 config.yaml 的环境配置）
     enabled      — yes/no，控制是否执行该行（不填默认 yes）
     section      — 文档章节编号（如 7.1.1），用于按章节筛选，不参与脚本逻辑
+    ref_case_id  — 关联测试用例ID，用于结果收集和回填
 
   场景编排列 (可选，用于多步骤测试):
     scenario_id | step | step_type | save_vars
@@ -205,7 +207,10 @@ class ExcelHandler:
         def _repl(m):
             path = m.group(1)
             try:
-                return get_key_value(path)
+                value = get_key_value(path)
+                if isinstance(value, str) and any(c in value for c in '\n\r\t"\\'):
+                    value = json.dumps(value)[1:-1]
+                return value
             except KeyError:
                 logger.warning("keys.json 路径不存在: %s", path)
                 return m.group(0)

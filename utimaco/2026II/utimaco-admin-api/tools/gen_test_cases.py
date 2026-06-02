@@ -132,6 +132,15 @@ SETUP_CASE_MAP = {
     "PK_SM2_S02_SETUP": "configCHSMPk-配置认证公钥",
     "TENANT_LIMIT_SETUP": "authPK-配置公钥指纹",
     "TENANT_LIMIT_TEARDOWN": "cleanPK-清除公钥指纹",
+    "PK_RSA_001": "configCHSMPk-配置认证公钥",
+    "PK_RSA_012": "configCHSMPk-配置认证公钥",
+    "PK_RSA_021": "configCHSMPk-配置认证公钥",
+    "PK_SM2_001": "configCHSMPk-配置认证公钥",
+    "PK_SM2_012": "configCHSMPk-配置认证公钥",
+    "PK_SM2_021": "configCHSMPk-配置认证公钥",
+    "TENANT_STATUS_001": "getStatus-获取VSM运行状态",
+    "TENANT_CLEANUP_001": "cleanPK-清除公钥指纹",
+    "TENANT_CLEANUP_002": "authPK-配置公钥指纹",
 }
 
 # ── case_id 前缀 → 章节号 (兜底映射) ─────────────────
@@ -180,7 +189,7 @@ def _valid_str(val) -> bool:
 def _build_section_map() -> dict:
     """从 test_data 的 section 列 + ref_case_id 建立 case_id → section 映射"""
     section_map = {}
-    for sheet in ["trusted", "guest", "pk_rsa", "pk_sm2", "section8_9"]:
+    for sheet in ["chsm", "vsm", "pk_rsa", "pk_sm2", "section8", "section9", "section9_pk"]:
         df = pd.read_excel(TD_FILE, sheet_name=sheet, dtype=str)
         df = df.replace({np.nan: None})
         for _, r in df.iterrows():
@@ -253,13 +262,17 @@ def _pk_interface_from_desc(desc: str, method: str = "POST") -> str:
 
 
 def get_auth_type(case_id: str, sheet: str) -> str:
-    if sheet == "guest":
-        return "guest"
+    if sheet in ("chsm", "vsm"):
+        if case_id.startswith("GUEST_") or case_id.startswith("CHSM_STATUS") or \
+           case_id.startswith("CHSM_ALLSTATUS") or case_id.startswith("CHSM_DEBUG") or \
+           case_id.startswith("VSM_STATUS") or case_id.startswith("AUTH_403"):
+            return "guest"
+        return "trusted"
     if sheet in ("pk_rsa", "pk_sm2"):
         return "pk"
-    if sheet == "section8_9":
-        if case_id.startswith("FS_"):
-            return "fileserver"
+    if sheet == "section8":
+        return "fileserver"
+    if sheet == "section9", "section9_pk":
         return "tenant"
     return "trusted"
 
@@ -498,7 +511,7 @@ def main():
             }
 
     new_rows = []
-    for sheet in ["trusted", "guest", "pk_rsa", "pk_sm2", "section8_9"]:
+    for sheet in ["chsm", "vsm", "pk_rsa", "pk_sm2", "section8", "section9", "section9_pk"]:
         td_df = pd.read_excel(TD_FILE, sheet_name=sheet, dtype=str)
         td_df = td_df.replace({np.nan: None})
 

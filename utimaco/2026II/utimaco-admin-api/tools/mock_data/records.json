@@ -1,5 +1,81 @@
 [
   {
+    "id": 7,
+    "time": "2026-05-28 14:07:25",
+    "method": "GET",
+    "path": "/favicon.ico",
+    "client": "10.10.2.91:56184",
+    "content_type": "",
+    "content_length": 0,
+    "headers": {
+      "Host": "192.168.51.108:9000",
+      "Connection": "keep-alive",
+      "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36",
+      "Accept": "image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8",
+      "Referer": "http://192.168.51.108:9000/records",
+      "Accept-Encoding": "gzip, deflate",
+      "Accept-Language": "zh-CN,zh;q=0.9"
+    },
+    "body_type": "empty"
+  },
+  {
+    "id": 6,
+    "time": "2026-05-28 14:06:56",
+    "method": "GET",
+    "path": "/favicon.ico",
+    "client": "10.10.2.91:56148",
+    "content_type": "",
+    "content_length": 0,
+    "headers": {
+      "Host": "192.168.51.108:9000",
+      "Connection": "keep-alive",
+      "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36",
+      "Accept": "image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8",
+      "Referer": "http://192.168.51.108:9000/callback",
+      "Accept-Encoding": "gzip, deflate",
+      "Accept-Language": "zh-CN,zh;q=0.9"
+    },
+    "body_type": "empty"
+  },
+  {
+    "id": 5,
+    "time": "2026-05-28 14:06:56",
+    "method": "GET",
+    "path": "/callback",
+    "client": "10.10.2.91:56147",
+    "content_type": "",
+    "content_length": 0,
+    "headers": {
+      "Host": "192.168.51.108:9000",
+      "Connection": "keep-alive",
+      "Upgrade-Insecure-Requests": "1",
+      "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36",
+      "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7",
+      "Accept-Encoding": "gzip, deflate",
+      "Accept-Language": "zh-CN,zh;q=0.9"
+    },
+    "body_type": "empty"
+  },
+  {
+    "id": 4,
+    "time": "2026-05-28 14:06:16",
+    "method": "GET",
+    "path": "/favicon.ico",
+    "client": "10.10.2.91:56106",
+    "content_type": "",
+    "content_length": 0,
+    "headers": {
+      "Host": "192.168.51.108:9000",
+      "Connection": "keep-alive",
+      "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36",
+      "Accept": "image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8",
+      "Referer": "http://192.168.51.108:9000/records",
+      "Accept-Encoding": "gzip, deflate",
+      "Accept-Language": "zh-CN,zh;q=0.9"
+    },
+    "body_type": "empty"
+  },
+  {
     "id": 1,
     "time": "2026-05-27 17:03:47",
     "method": "POST",

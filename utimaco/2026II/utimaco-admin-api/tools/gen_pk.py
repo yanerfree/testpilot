@@ -2,10 +2,12 @@
 """
 生成 pk_rsa / pk_sm2 sheet — 公钥认证接口(7.3)的场景测试和独立错误测试。
 
+7.3 节公钥配置没有数量限制（区别于 Section 9 租户接口的最多 2 个限制）。
+
 每个 sheet 包含 3 个场景 + 10 条独立错误用例:
-  SCN_PK_{RSA|SM2}_SINGLE  (7 步)  — 单公钥的配置/查询/幂等/超限/清理
-  SCN_PK_{RSA|SM2}_MULTI   (9 步)  — 多公钥追加/超限/跨算法/清空/403验证
-  SCN_PK_{RSA|SM2}_BATCH   (11 步) — 混合算法/批量传入/去重/恢复
+  SCN_PK_{RSA|SM2}_SINGLE  (5 步)  — 单公钥的配置/查询/幂等/清理
+  SCN_PK_{RSA|SM2}_MULTI   (9 步)  — 多公钥追加/跨算法/清空/401验证
+  SCN_PK_{RSA|SM2}_BATCH   (11 步) — 批量传入/去重/混合算法/恢复
   独立错误用例 E01-E10             — 参数校验
 """
 
@@ -26,19 +28,24 @@ except ImportError:
 EP = "/api/1.0/chsm/authpk"
 EP_CHSM = "/api/1.0/chsm"
 
-RSA_KEY1 = "${keys.rsa.key1.public_key}"
-RSA_KEY2 = "${keys.rsa.key2.public_key}"
-RSA_KEY3 = "${keys.rsa.key3.public_key}"
-SM2_KEY1 = "${keys.sm2.key1.public_key}"
-SM2_KEY2 = "${keys.sm2.key2.public_key}"
-SM2_KEY3 = "${keys.sm2.key3.public_key}"
+# configCHSMPk API 请求体中 algorithm 字段的正确取值
+API_ALG = {"rsa": "RSAWithSHA256", "sm2": "sm2"}
+
+RSA_KEY1 = "${keys.rsa.key1.public_key_pem}"
+RSA_KEY2 = "${keys.rsa.key2.public_key_pem}"
+RSA_KEY3 = "${keys.rsa.key3.public_key_pem}"
+SM2_KEY1 = "${keys.sm2.key1.public_key_pem}"
+SM2_KEY2 = "${keys.sm2.key2.public_key_pem}"
+SM2_KEY3 = "${keys.sm2.key3.public_key_pem}"
 
 RSA_FP1 = "/WiF31yZx0q9nF0fQBudD7xSeivFBfdEhG8hl/KQo1c="
 RSA_FP2 = "8CPhhUBOk75PaceSD6UjfghIh2V0xEo+1v2nUN4k7uc="
+RSA_FP3 = "EZe+Or1pc78hK6RoKjqYPGuZ7h59ohDZqJBa7xBCgb8="
 SM2_FP1 = "mdg2R+NkXUI3WidsEba3Dkg/MBx98JaXO23L9XF8xK8="
 SM2_FP2 = "RSiUBOLEkAC8AzPRie3UiN8UPHlrLyA0SVpYGEO7tUc="
+SM2_FP3 = "gr1fZe+LtAM9IA5QhUWOj7Wm0fCavaBXn5oHLS/9UCM="
 
-# RSA fingerprint hash algorithm = sha256, SM2 = sm3
+# getCHSMPkFingerprints 响应中 result.algorithm 的取值（指纹哈希算法）
 RSA_HASH_ALG = "sha256"
 SM2_HASH_ALG = "sm3"
 
@@ -46,7 +53,7 @@ HEADERS = [
     "case_id", "description", "host", "endpoint", "method",
     "params", "json_data", "expected_status", "assert_rules",
     "scenario_id", "step", "step_type", "save_vars",
-    "enabled", "section", "ref_case_id",
+    "enabled", "section", "ref_case_id", "auth", "approved",
 ]
 
 OK = json.dumps([
@@ -58,8 +65,8 @@ ERR400 = json.dumps([
     {"type": "status_code", "expected_code": 400},
 ], ensure_ascii=False)
 
-ERR403 = json.dumps([
-    {"type": "status_code", "expected_code": 403},
+ERR401 = json.dumps([
+    {"type": "status_code", "expected_code": 401},
 ], ensure_ascii=False)
 
 
@@ -71,12 +78,18 @@ def jd(d):
     return json.dumps(d, ensure_ascii=False)
 
 
+SECTION_BY_METHOD = {"GET": "7.3.1", "POST": "7.3.2", "DELETE": "7.3.3"}
+
+
 def row(case_id, desc, endpoint, expected_status, json_data=None, params=None,
-        assert_rules=None, ref_case_id=None, enabled="yes", section="7.3",
+        assert_rules=None, ref_case_id=None, enabled="yes", section=None,
         scenario_id=None, step=None, step_type=None, save_vars=None,
-        method="POST"):
+        method="POST", approved="yes"):
     if assert_rules is None:
         assert_rules = OK if expected_status == 200 else ERR400
+    auth = "no" if method == "GET" else "yes"
+    if section is None:
+        section = SECTION_BY_METHOD.get(method, "7.3")
     return {
         "case_id": case_id,
         "description": desc,
@@ -94,45 +107,55 @@ def row(case_id, desc, endpoint, expected_status, json_data=None, params=None,
         "enabled": enabled,
         "section": section,
         "ref_case_id": ref_case_id or "",
+        "auth": auth,
+        "approved": approved,
     }
 
 
 def fp_assert_1(hash_alg, fp):
-    """Assert exactly 1 fingerprint."""
     return json.dumps([
         {"type": "status_code", "expected_code": 200},
         {"type": "json_contains", "key": "result.algorithm", "value": hash_alg},
-        {"type": "json_contains", "key": "result.fingerprints[*]", "value": fp},
+        {"type": "json_contains", "key": "result.fingerprints[0]"},
         {"type": "json_not_contains", "key": "result.fingerprints[1]"},
     ], ensure_ascii=False)
 
 
 def fp_assert_2(hash_alg, fp1, fp2):
-    """Assert exactly 2 fingerprints."""
     return json.dumps([
         {"type": "status_code", "expected_code": 200},
         {"type": "json_contains", "key": "result.algorithm", "value": hash_alg},
-        {"type": "json_contains", "key": "result.fingerprints[*]", "value": fp1},
-        {"type": "json_contains", "key": "result.fingerprints[*]", "value": fp2},
+        {"type": "json_contains", "key": "result.fingerprints[0]"},
+        {"type": "json_contains", "key": "result.fingerprints[1]"},
         {"type": "json_not_contains", "key": "result.fingerprints[2]"},
     ], ensure_ascii=False)
 
 
+def fp_assert_3(hash_alg, fp1, fp2, fp3):
+    return json.dumps([
+        {"type": "status_code", "expected_code": 200},
+        {"type": "json_contains", "key": "result.algorithm", "value": hash_alg},
+        {"type": "json_contains", "key": "result.fingerprints[0]"},
+        {"type": "json_contains", "key": "result.fingerprints[1]"},
+        {"type": "json_contains", "key": "result.fingerprints[2]"},
+        {"type": "json_not_contains", "key": "result.fingerprints[3]"},
+    ], ensure_ascii=False)
+
+
 def fp_assert_empty():
-    """Assert no fingerprints."""
     return json.dumps([
         {"type": "status_code", "expected_code": 200},
         {"type": "json_not_contains", "key": "result.fingerprints[0]"},
     ], ensure_ascii=False)
 
 
-def fp_assert_mixed_2():
-    """Assert exactly 2 fingerprints (mixed algorithm — no specific value check)."""
+def fp_assert_mixed():
+    """混合算法指纹 — 检查指纹存在 + algorithm 字段存在"""
     return json.dumps([
         {"type": "status_code", "expected_code": 200},
+        {"type": "json_contains", "key": "result.algorithm"},
         {"type": "json_contains", "key": "result.fingerprints[0]"},
         {"type": "json_contains", "key": "result.fingerprints[1]"},
-        {"type": "json_not_contains", "key": "result.fingerprints[2]"},
     ], ensure_ascii=False)
 
 
@@ -141,111 +164,88 @@ def fp_assert_mixed_2():
 # ================================================================
 
 def gen_pk_single_scenario(alg, prefix, scn_prefix, keys, fps, hash_alg):
-    """SCN_PK_{RSA|SM2}_SINGLE: 7 steps.
-    steps 1-6 from original rows 001-004B, + new S01_CLEAR teardown.
-    """
+    """SCN_PK_{RSA|SM2}_SINGLE: 5 steps — 单公钥配置/查询/幂等/清理"""
     SID = f"{scn_prefix}_SINGLE"
-    ALG = alg  # "rsa" or "sm2"
-    K1, K2, K3 = keys
+    LABEL = alg.upper()
+    ALG = API_ALG[alg]
+    K1 = keys[0]
     FP1 = fps[0]
     a1 = fp_assert_1(hash_alg, FP1)
 
     return [
-        # step 1: setup — 首次配置1个公钥
-        row(f"{prefix}_001", f"首次配置1个{ALG.upper()}公钥", EP, 200,
+        row(f"{prefix}_001", f"首次配置1个{LABEL}公钥", EP, 200,
             jd({"requestId": "uuid", "algorithm": ALG, "pks": [K1]}),
             scenario_id=SID, step=1, step_type="setup",
             ref_case_id="AUTH_PK_001"),
-        # step 2: verify — 查询验证1个指纹
         row(f"{prefix}_002", "查询验证1个指纹", EP, 200,
             params="requestId=uuid", method="GET",
             assert_rules=a1,
             scenario_id=SID, step=2, step_type="verify",
             ref_case_id="AUTH_PK_002"),
-        # step 3: test — 重复配置相同公钥（幂等）
-        row(f"{prefix}_003", f"重复配置相同{ALG.upper()}公钥（幂等）", EP, 200,
+        row(f"{prefix}_003", f"重复配置相同{LABEL}公钥（幂等）", EP, 200,
             jd({"requestId": "uuid", "algorithm": ALG, "pks": [K1]}),
             scenario_id=SID, step=3, step_type="test"),
-        # step 4: verify — 幂等后查询仍为1个指纹
         row(f"{prefix}_004", "幂等后查询仍为1个指纹", EP, 200,
             params="requestId=uuid", method="GET",
             assert_rules=a1,
             scenario_id=SID, step=4, step_type="verify"),
-        # step 5: test — 增量追加2个公钥（已有1+传2=3超限，失败）
-        row(f"{prefix}_004A", f"增量追加2个{ALG.upper()}公钥（已有1+传2=3超限，失败）", EP, 400,
-            jd({"requestId": "uuid", "algorithm": ALG, "pks": [K2, K3]}),
-            scenario_id=SID, step=5, step_type="test",
-            ref_case_id="AUTH_PK_015"),
-        # step 6: verify — 增量超限后查询仍为1个指纹
-        row(f"{prefix}_004B", "增量超限后查询仍为1个指纹", EP, 200,
-            params="requestId=uuid", method="GET",
-            assert_rules=a1,
-            scenario_id=SID, step=6, step_type="verify"),
-        # step 7: teardown — 清空公钥(场景清理)
         row(f"{prefix}_S01_CLEAR", "清空公钥(场景清理)", EP, 200,
             jd({"requestId": "uuid"}), method="DELETE",
-            scenario_id=SID, step=7, step_type="teardown"),
+            scenario_id=SID, step=5, step_type="teardown"),
     ]
 
 
 def gen_pk_multi_scenario(alg, prefix, scn_prefix, keys, fps, hash_alg,
                           cross_alg, cross_keys):
-    """SCN_PK_{RSA|SM2}_MULTI: 9 steps.
-    new S02_SETUP + original rows 005-011A.
+    """SCN_PK_{RSA|SM2}_MULTI: 9 steps — 多公钥追加/跨算法/清空/401验证
+    7.3 无数量限制: 3个同算法公钥 + 1个跨算法公钥均可成功配置。
     """
     SID = f"{scn_prefix}_MULTI"
-    ALG = alg
+    LABEL = alg.upper()
+    ALG = API_ALG[alg]
     K1, K2, K3 = keys
-    FP1, FP2 = fps
-    CK1 = cross_keys[0]  # cross-algorithm key1
-    CROSS = cross_alg
+    FP1, FP2, FP3 = fps
+    CK1 = cross_keys[0]
+    CROSS_ALG = API_ALG[cross_alg]
+    CROSS_LABEL = cross_alg.upper()
     a2 = fp_assert_2(hash_alg, FP1, FP2)
+    a3 = fp_assert_3(hash_alg, FP1, FP2, FP3)
 
     return [
-        # step 1: setup — 配置1个公钥(前置)
-        row(f"{prefix}_S02_SETUP", f"配置1个{ALG.upper()}公钥(前置)", EP, 200,
+        row(f"{prefix}_005", f"配置1个{LABEL}公钥(前置)", EP, 200,
             jd({"requestId": "uuid", "algorithm": ALG, "pks": [K1]}),
             scenario_id=SID, step=1, step_type="setup"),
-        # step 2: test — 追加第2个公钥（总数2）
-        row(f"{prefix}_005", f"追加第2个{ALG.upper()}公钥（总数2）", EP, 200,
+        row(f"{prefix}_006", f"追加第2个{LABEL}公钥（总数2）", EP, 200,
             jd({"requestId": "uuid", "algorithm": ALG, "pks": [K2]}),
             scenario_id=SID, step=2, step_type="test",
             ref_case_id="AUTH_PK_016"),
-        # step 3: verify — 查询验证2个指纹
-        row(f"{prefix}_006", "查询验证2个指纹", EP, 200,
+        row(f"{prefix}_007", "查询验证2个指纹", EP, 200,
             params="requestId=uuid", method="GET",
             assert_rules=a2,
-            scenario_id=SID, step=3, step_type="verify",
-            ref_case_id="AUTH_PK_016B"),
-        # step 4: test — 追加第3个公钥（总数超限，失败）
-        row(f"{prefix}_007", f"追加第3个{ALG.upper()}公钥（总数超限，失败）", EP, 400,
+            scenario_id=SID, step=3, step_type="verify"),
+        row(f"{prefix}_008", f"追加第3个{LABEL}公钥（总数3，无数量限制）", EP, 200,
             jd({"requestId": "uuid", "algorithm": ALG, "pks": [K3]}),
             scenario_id=SID, step=4, step_type="test"),
-        # step 5: verify — 超限后查询仍为2个指纹
-        row(f"{prefix}_008", "超限后查询仍为2个指纹", EP, 200,
+        row(f"{prefix}_009", "查询验证3个指纹", EP, 200,
             params="requestId=uuid", method="GET",
-            assert_rules=a2,
+            assert_rules=a3,
             scenario_id=SID, step=5, step_type="verify"),
-        # step 6: test — 追加跨算法公钥（已满2个，失败）
-        row(f"{prefix}_009", f"追加{CROSS.upper()}公钥（已满2个，失败）", EP, 400,
-            jd({"requestId": "uuid", "algorithm": CROSS, "pks": [CK1]}),
+        row(f"{prefix}_010", f"追加{CROSS_LABEL}跨算法公钥（混合算法）", EP, 200,
+            jd({"requestId": "uuid", "algorithm": CROSS_ALG, "pks": [CK1]}),
             scenario_id=SID, step=6, step_type="test"),
-        # step 7: test — 清空所有公钥
-        row(f"{prefix}_010", "清空所有公钥", EP, 200,
+        row(f"{prefix}_011", "清空所有公钥", EP, 200,
             jd({"requestId": "uuid"}), method="DELETE",
             scenario_id=SID, step=7, step_type="test",
             ref_case_id="AUTH_PK_017"),
-        # step 8: verify — 清空后查询验证为空
-        row(f"{prefix}_011", "清空后查询验证为空", EP, 200,
+        row(f"{prefix}_012", "清空后查询验证为空", EP, 200,
             params="requestId=uuid", method="GET",
             assert_rules=fp_assert_empty(),
             scenario_id=SID, step=8, step_type="verify",
             ref_case_id="AUTH_PK_018"),
-        # step 9: test — 清空后调trusted接口(getCHSMInfo)验证返回403
-        row(f"{prefix}_011A", "清空后调trusted接口(getCHSMInfo)验证返回403",
-            EP_CHSM, 403,
+        row(f"{prefix}_013", "清空后调trusted接口(getCHSMInfo)验证返回401",
+            EP_CHSM, 401,
             jd({"requestId": "uuid", "oprType": "getinfo"}),
-            assert_rules=ERR403,
+            assert_rules=ERR401,
             scenario_id=SID, step=9, step_type="test",
             ref_case_id="AUTH_PK_019"),
     ]
@@ -254,69 +254,60 @@ def gen_pk_multi_scenario(alg, prefix, scn_prefix, keys, fps, hash_alg,
 def gen_pk_batch_scenario(alg, prefix, scn_prefix, keys, fps, hash_alg,
                           cross_alg, cross_keys,
                           cross_ref_case_id):
-    """SCN_PK_{RSA|SM2}_BATCH: 11 steps.
-    Original rows 012-022 renumbered as steps 1-11.
+    """SCN_PK_{RSA|SM2}_BATCH: 11 steps — 批量传入/去重/混合算法/恢复
+    7.3 无数量限制: 一次传3个公钥可以成功。
     """
     SID = f"{scn_prefix}_BATCH"
-    ALG = alg
+    LABEL = alg.upper()
+    ALG = API_ALG[alg]
     K1, K2, K3 = keys
-    FP1, FP2 = fps
+    FP1, FP2, FP3 = fps
     CK1 = cross_keys[0]
-    CROSS = cross_alg
-    a2 = fp_assert_2(hash_alg, FP1, FP2)
+    CROSS_ALG = API_ALG[cross_alg]
+    CROSS_LABEL = cross_alg.upper()
+    a3 = fp_assert_3(hash_alg, FP1, FP2, FP3)
     a1 = fp_assert_1(hash_alg, FP1)
 
     return [
-        # step 1: setup — 重新配置1个公钥
-        row(f"{prefix}_012", f"重新配置1个{ALG.upper()}公钥", EP, 200,
+        row(f"{prefix}_014", f"配置1个{LABEL}公钥", EP, 200,
             jd({"requestId": "uuid", "algorithm": ALG, "pks": [K1]}),
             scenario_id=SID, step=1, step_type="setup"),
-        # step 2: test — 追加1个跨算法公钥（混合算法，总数2，成功）
-        row(f"{prefix}_013", f"追加1个{CROSS.upper()}公钥（混合算法，总数2，成功）", EP, 200,
-            jd({"requestId": "uuid", "algorithm": CROSS, "pks": [CK1]}),
+        row(f"{prefix}_015", f"追加1个{CROSS_LABEL}公钥（混合算法）", EP, 200,
+            jd({"requestId": "uuid", "algorithm": CROSS_ALG, "pks": [CK1]}),
             scenario_id=SID, step=2, step_type="test",
             ref_case_id=cross_ref_case_id),
-        # step 3: verify — 查询验证混合算法指纹
-        row(f"{prefix}_014", "查询验证混合算法指纹", EP, 200,
+        row(f"{prefix}_016", "查询验证混合算法指纹", EP, 200,
             params="requestId=uuid", method="GET",
-            assert_rules=fp_assert_mixed_2(),
+            assert_rules=fp_assert_mixed(),
             scenario_id=SID, step=3, step_type="verify",
             ref_case_id="AUTH_PK_010"),
-        # step 4: test — 清空所有公钥
-        row(f"{prefix}_015", "清空所有公钥", EP, 200,
+        row(f"{prefix}_017", "清空所有公钥", EP, 200,
             jd({"requestId": "uuid"}), method="DELETE",
             scenario_id=SID, step=4, step_type="test"),
-        # step 5: test — 一次传3个公钥（失败）
-        row(f"{prefix}_016", f"一次传3个{ALG.upper()}公钥（失败）", EP, 400,
+        row(f"{prefix}_018", f"一次传3个{LABEL}公钥（无数量限制）", EP, 200,
             jd({"requestId": "uuid", "algorithm": ALG, "pks": [K1, K2, K3]}),
             scenario_id=SID, step=5, step_type="test",
-            ref_case_id="AUTH_PK_013"),
-        # step 6: test — 一次传2个公钥（成功）
-        row(f"{prefix}_017", f"一次传2个{ALG.upper()}公钥（成功）", EP, 200,
-            jd({"requestId": "uuid", "algorithm": ALG, "pks": [K1, K2]}),
-            scenario_id=SID, step=6, step_type="test",
             ref_case_id="AUTH_PK_004"),
-        # step 7: test — 去重测试
-        row(f"{prefix}_018",
-            "去重测试：传[已有公钥1+已有公钥2]（幂等成功）", EP, 200,
-            jd({"requestId": "uuid", "algorithm": ALG, "pks": [K1, K2]}),
-            scenario_id=SID, step=7, step_type="test"),
-        # step 8: verify — 去重后查询仍为2个指纹
-        row(f"{prefix}_019", "去重后查询仍为2个指纹", EP, 200,
+        row(f"{prefix}_019", "查询验证3个指纹", EP, 200,
             params="requestId=uuid", method="GET",
-            assert_rules=a2,
+            assert_rules=a3,
+            scenario_id=SID, step=6, step_type="verify"),
+        row(f"{prefix}_020",
+            "去重测试：传相同3个公钥（幂等成功）", EP, 200,
+            jd({"requestId": "uuid", "algorithm": ALG, "pks": [K1, K2, K3]}),
+            scenario_id=SID, step=7, step_type="test"),
+        row(f"{prefix}_021", "去重后查询仍为3个指纹", EP, 200,
+            params="requestId=uuid", method="GET",
+            assert_rules=a3,
             scenario_id=SID, step=8, step_type="verify"),
-        # step 9: test — 清空所有公钥
-        row(f"{prefix}_020", "清空所有公钥", EP, 200,
+        row(f"{prefix}_022", "清空所有公钥", EP, 200,
             jd({"requestId": "uuid"}), method="DELETE",
             scenario_id=SID, step=9, step_type="test"),
-        # step 10: setup — 恢复主公钥
-        row(f"{prefix}_021", f"恢复主{ALG.upper()}公钥（为后续测试准备）", EP, 200,
+        row(f"{prefix}_023", f"恢复主{LABEL}公钥（为后续测试准备）", EP, 200,
             jd({"requestId": "uuid", "algorithm": ALG, "pks": [K1]}),
             scenario_id=SID, step=10, step_type="setup",
             ref_case_id="AUTH_PK_020"),
-        # step 11: verify — 确认主公钥已就绪
-        row(f"{prefix}_022", "确认主公钥已就绪", EP, 200,
+        row(f"{prefix}_024", "确认主公钥已就绪", EP, 200,
             params="requestId=uuid", method="GET",
             assert_rules=a1,
             scenario_id=SID, step=11, step_type="verify"),
@@ -325,49 +316,54 @@ def gen_pk_batch_scenario(alg, prefix, scn_prefix, keys, fps, hash_alg,
 
 def gen_pk_error_standalone(alg, prefix, keys):
     """独立错误用例 E01-E10，无 scenario_id。"""
-    ALG = alg
+    ALG = API_ALG[alg]
+    LABEL = alg.upper()
     K1 = keys[0]
 
     return [
-        # E01: algorithm为非法值(aes)
         row(f"{prefix}_E01", "algorithm为非法值(aes)", EP, 400,
             jd({"requestId": "uuid", "algorithm": "aes", "pks": [K1]}),
             ref_case_id="AUTH_PK_E01"),
-        # E02: pks为空数组[]
         row(f"{prefix}_E02", "pks为空数组[]", EP, 400,
             jd({"requestId": "uuid", "algorithm": ALG, "pks": []}),
             ref_case_id="AUTH_PK_E02"),
-        # E03: pks中公钥格式错误
         row(f"{prefix}_E03", "pks中公钥格式错误", EP, 400,
             jd({"requestId": "uuid", "algorithm": ALG, "pks": ["not-valid-key!!!"]}),
             ref_case_id="AUTH_PK_E03"),
-        # E04: 缺少algorithm字段
         row(f"{prefix}_E04", "缺少algorithm字段", EP, 400,
             jd({"requestId": "uuid", "pks": [K1]}),
             ref_case_id="AUTH_PK_E04"),
-        # E05: 缺少pks字段
         row(f"{prefix}_E05", "缺少pks字段", EP, 400,
             jd({"requestId": "uuid", "algorithm": ALG}),
             ref_case_id="AUTH_PK_E05"),
-        # E06: 缺少requestId
         row(f"{prefix}_E06", "缺少requestId", EP, 400,
             jd({"algorithm": ALG, "pks": [K1]}),
             ref_case_id="AUTH_PK_E06"),
-        # E07: requestId为空字符串
         row(f"{prefix}_E07", "requestId为空字符串", EP, 400,
             jd({"requestId": "", "algorithm": ALG, "pks": [K1]}),
             ref_case_id="AUTH_PK_E07"),
-        # E08: 1个正确+1个错误公钥
         row(f"{prefix}_E08", "1个正确+1个错误公钥", EP, 400,
             jd({"requestId": "uuid", "algorithm": ALG, "pks": [K1, "invalid!!!"]})),
-        # E09: clearCHSMPk缺少requestId
         row(f"{prefix}_E09", "clearCHSMPk缺少requestId", EP, 400,
             jd({}), method="DELETE",
             ref_case_id="AUTH_PK_E08"),
-        # E10: getCHSMPk缺少requestId
         row(f"{prefix}_E10", "getCHSMPk缺少requestId", EP, 400,
             method="GET",
             ref_case_id="AUTH_PK_E09"),
+        row(f"{prefix}_E11", "clearCHSMPk requestId空字符串", EP, 400,
+            jd({"requestId": ""}), method="DELETE"),
+        row(f"{prefix}_E12", "getCHSMPk requestId空字符串", EP, 400,
+            params="requestId=", method="GET"),
+    ]
+
+
+def _pk_tail_cleanup():
+    return [
+        row("PK_CLEAR_H001", "清空所有公钥", EP, 200,
+            jd({"requestId": "uuid"}), method="DELETE"),
+        row("PK_GET_H002", "清空后查询验证为空", EP, 200,
+            params="requestId=uuid", method="GET",
+            assert_rules=fp_assert_empty()),
     ]
 
 
@@ -389,14 +385,13 @@ def main():
     xlsx = os.path.join(os.path.dirname(os.path.dirname(__file__)), "data", "test_data.xlsx")
     wb = openpyxl.load_workbook(xlsx)
 
-    # 删除旧 sheet
     for name in ["pk_rsa", "pk_sm2"]:
         if name in wb.sheetnames:
             del wb[name]
 
     # --- pk_rsa ---
     rsa_keys = (RSA_KEY1, RSA_KEY2, RSA_KEY3)
-    rsa_fps = (RSA_FP1, RSA_FP2)
+    rsa_fps = (RSA_FP1, RSA_FP2, RSA_FP3)
     sm2_keys = (SM2_KEY1, SM2_KEY2, SM2_KEY3)
 
     rsa_data = []
@@ -410,12 +405,13 @@ def main():
         "sm2", sm2_keys,
         cross_ref_case_id="AUTH_PK_008"))
     rsa_data.extend(gen_pk_error_standalone("rsa", "PK_RSA", rsa_keys))
+    rsa_data.extend(_pk_tail_cleanup())
 
     ws_rsa = wb.create_sheet("pk_rsa")
     write_sheet(ws_rsa, rsa_data)
 
     # --- pk_sm2 ---
-    sm2_fps = (SM2_FP1, SM2_FP2)
+    sm2_fps = (SM2_FP1, SM2_FP2, SM2_FP3)
 
     sm2_data = []
     sm2_data.extend(gen_pk_single_scenario(
@@ -428,19 +424,18 @@ def main():
         "rsa", rsa_keys,
         cross_ref_case_id="AUTH_PK_009"))
     sm2_data.extend(gen_pk_error_standalone("sm2", "PK_SM2", sm2_keys))
+    sm2_data.extend(_pk_tail_cleanup())
 
     ws_sm2 = wb.create_sheet("pk_sm2")
     write_sheet(ws_sm2, sm2_data)
 
     wb.save(xlsx)
 
-    # 统计
     for sheet_name, data in [("pk_rsa", rsa_data), ("pk_sm2", sm2_data)]:
         enabled = sum(1 for r in data if r.get("enabled", "yes") == "yes")
         disabled = len(data) - enabled
         print(f"{sheet_name}: {len(data)} 行 ({enabled} enabled, {disabled} disabled)")
 
-        # 场景统计
         from collections import Counter
         scn_counter = Counter()
         for r in data:

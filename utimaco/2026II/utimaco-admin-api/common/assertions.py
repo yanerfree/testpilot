@@ -13,6 +13,7 @@ import json
 import re
 from typing import Any, Dict, List, Optional, Union
 
+import allure
 import requests
 
 from common.logger import logger
@@ -26,9 +27,10 @@ class Assertions:
     # ------------------------------------------------------------------
     def assert_status_code(self, resp: requests.Response, expected: int):
         actual = resp.status_code
-        assert actual == expected, (
-            f"状态码不匹配: 期望 {expected}, 实际 {actual}. body={resp.text[:300]}"
-        )
+        with allure.step(f"断言: 状态码 {actual} == {expected}"):
+            assert actual == expected, (
+                f"状态码不匹配: 期望 {expected}, 实际 {actual}. body={resp.text[:300]}"
+            )
         logger.info("✓ 状态码 %d", actual)
 
     def apply_assert_rules(self, resp: requests.Response, rules: Union[List[Dict], None]):
@@ -60,10 +62,6 @@ class Assertions:
     # ------------------------------------------------------------------
     @staticmethod
     def _resolve_path(obj: Any, path: str) -> List[Any]:
-        """
-        解析点号路径，返回所有匹配值的列表。
-        空列表表示路径不存在。
-        """
         if not path:
             return [obj]
 
@@ -72,7 +70,6 @@ class Assertions:
 
         for part in parts:
             next_vals: List[Any] = []
-            # 解析 key[index] 模式
             m = re.match(r"^(\w+)\[(.+?)\]$", part)
             if m:
                 key, idx = m.group(1), m.group(2)
@@ -87,7 +84,6 @@ class Assertions:
                 if idx is None:
                     next_vals.append(val)
                 elif idx == "*":
-                    # 通配: 遍历数组每个元素
                     if isinstance(val, list):
                         next_vals.extend(val)
                 elif idx.lstrip("-").isdigit():
@@ -106,14 +102,19 @@ class Assertions:
         body = resp.json()
         key = rule.get("key", "")
         vals = self._resolve_path(body, key)
-        assert vals, f"JSON 路径 '{key}' 不存在. body={json.dumps(body, ensure_ascii=False)[:300]}"
 
         if "value" in rule:
             expected = rule["value"]
             matched = any(self._value_match(v, expected) for v in vals)
-            assert matched, (
-                f"JSON 路径 '{key}' 值不匹配: 期望 {expected!r}, 实际 {vals}"
-            )
+            actual_str = str(vals[0]) if len(vals) == 1 else str(vals)
+            with allure.step(f"断言: {key} 包含 {expected!r} → 实际: {actual_str}"):
+                assert vals, f"JSON 路径 '{key}' 不存在. body={json.dumps(body, ensure_ascii=False)[:300]}"
+                assert matched, (
+                    f"JSON 路径 '{key}' 值不匹配: 期望 {expected!r}, 实际 {vals}"
+                )
+        else:
+            with allure.step(f"断言: {key} 存在 → {'存在' if vals else '不存在'}"):
+                assert vals, f"JSON 路径 '{key}' 不存在. body={json.dumps(body, ensure_ascii=False)[:300]}"
         logger.info("✓ json_contains: %s", key)
 
     def _assert_json_not_contains(self, resp: requests.Response, rule: Dict):
@@ -123,29 +124,32 @@ class Assertions:
         if "value" in rule:
             expected = rule["value"]
             matched = any(self._value_match(v, expected) for v in vals)
-            assert not matched, f"JSON 路径 '{key}' 不应包含值 {expected!r}"
+            with allure.step(f"断言: {key} 不包含 {expected!r} → {'不包含' if not matched else '包含!'}"):
+                assert not matched, f"JSON 路径 '{key}' 不应包含值 {expected!r}"
         else:
-            assert not vals, f"JSON 路径 '{key}' 不应存在"
+            with allure.step(f"断言: {key} 不存在 → {'不存在' if not vals else '存在!'}"):
+                assert not vals, f"JSON 路径 '{key}' 不应存在"
         logger.info("✓ json_not_contains: %s", key)
 
     @staticmethod
     def _assert_text_contains(resp: requests.Response, rule: Dict):
         text = rule.get("text", "")
-        assert text in resp.text, f"响应文本不包含 '{text}'. body={resp.text[:300]}"
+        with allure.step(f"断言: 响应包含 '{text}'"):
+            assert text in resp.text, f"响应文本不包含 '{text}'. body={resp.text[:300]}"
         logger.info("✓ text_contains: %s", text)
 
     @staticmethod
     def _assert_response_time(resp: requests.Response, rule: Dict):
         max_t = float(rule.get("max_time", 5.0))
         actual = resp.elapsed.total_seconds()
-        assert actual <= max_t, f"响应时间 {actual:.3f}s 超过 {max_t}s"
+        with allure.step(f"断言: 响应时间 {actual:.3f}s <= {max_t}s"):
+            assert actual <= max_t, f"响应时间 {actual:.3f}s 超过 {max_t}s"
         logger.info("✓ response_time: %.3fs <= %.1fs", actual, max_t)
 
     @staticmethod
     def _value_match(actual: Any, expected: Any) -> bool:
         if actual == expected:
             return True
-        # 宽松类型比较 (Excel 读出来可能是 str / int 混搭)
         try:
             return str(actual) == str(expected)
         except Exception:

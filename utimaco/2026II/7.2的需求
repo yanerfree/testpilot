@@ -1,0 +1,528 @@
+7.2VSM配置管理类接口
+7.2.1获取VSM详细信息
+URL：	http://{chsmip:port}/api/{1.0}/vsm
+调用方法：	POST
+功能描述：	获取指定VSM的详细信息。
+	
+	参数	类型	说明
+输入参数：	requestId	string	请求流水号
+	oprType	string	操作类型，取值：“getinfo”
+	vsmId	string	VSM识别码
+			
+输出参数：	status	int	状态码
+	message	string	状态描述
+	timestamp	string	服务器响应时间
+	requestId	string	请求ID
+	costMillis	long	服务器处理时间(毫秒数)
+	result	object	返回数据对象
+			
+result对象：	id	string	vsm识别码
+	version	string	vsm版本
+	token	string	vsm的token
+	ip	string	vsm ip地址
+	func	string	vsm的类型。枚举值：evsm 金融密码机，gvsm 服务器密码机，svsm,签名验签密码机
+	mask	string	vsm实例掩码地址
+	gateway	string	vsm实例网关
+	digest	string	影像摘要，算法不做统一要求
+	communication	int	通信方式，取值范围：1-密文；2-明文；
+
+
+
+	resourceClusterTenant	String	租户侧的VSM集群信息（需新增1）
+
+
+	encryptTransfer Interval	int	有效的统计时间间隔
+
+	encryptTransfer	array	密码资源调用次数信息（需新增2）
+			
+	alg	String	为encryt_transfer数组中包含对象的第一个字段，算法名称，例如SM1,SM2,SM3,SM4,RSA1024,AES256等
+
+	avg	int	为encryt_transfer数组中包含对象的第二个字段，该段时间内该算法平均调用次数
+
+	max	int	为encryt_transfer数组中包含对象的第三个字段，该段时间内该算法最大调用次数
+
+
+	extensions	string	扩展信息，可选域，厂商自定义
+			
+返回内容示例：
+{
+    "status": 200,
+    "message": "success",
+    "timestamp": "2017-01-08T21:48:16.735+0800",
+    "requestId": "5c48319b",
+    "costMillis": 500,
+    "result": {
+        "id": "00000000-0000-0000-0000-0CC47AB492BE",
+        "version": "1.0",
+        "ip": "192.168.1.1",
+        "token": "0",
+        "mask": "255.255.255.0",
+        "gateway": "192.168.1.100",
+        "digest": "digest",
+        "communication": 1,
+        "resource_cluster_tenant": "123456",
+        "encrypt_transfer_interval": 10,
+        "encrypt_transfer": [
+            {
+                "alg": "sm2",
+                "avg": 123,
+                "max": 456
+            },
+            {
+                "alg": "sm3",
+                "avg": 123,
+                "max": 456
+            },
+            {
+                "alg": "sm4",
+                "avg": 123,
+                "max": 456
+            }
+        ]
+    }
+} 
+7.2.2获取VSM运行状态
+URL：	http://{chsmip:port}/api/{1.0}/vsm/status
+调用方法：	GET
+功能描述：	获取指定VSM的运行状态。
+	
+	参数	类型	说明
+输入参数：	requestId	string	请求流水号
+	vsmId	string	VSM识别码
+			
+输出参数：	status	int	状态码
+	message	string	状态描述
+	timestamp	string	服务器响应时间
+	requestId	string	请求ID
+	costMillis	long	服务器处理时间(毫秒数)
+	result	object	返回数据对象
+			
+result对象：	status	string	vsm状态(ok或者fail)
+			
+返回内容示例：
+{
+    "status": 200,
+    "message": "success",
+    "timestamp": "2017-01-08T21:48:16.735+0800",
+    "requestId": "5c48319b",
+    "costMillis": 500,
+    "result": {
+        "status": "ok"
+    }
+}
+
+7.2.3配置VSM网络信息
+URL：	http://{chsmip:port}/api/{1.0}/vsm/network
+调用方法：	POST
+功能描述：	修改VSM的网络属性配置。
+	
+	参数	类型	说明
+输入参数：	requestId	string	请求流水号
+	vsmId	string	VSM识别码
+	ip	string	ip地址
+	mask	string	掩码（配置IPv6地址时，该字段为子网前缀长度，例如：64）
+	gateway	string	网关
+			
+输出参数：	status	int	状态码
+	message	string	状态描述
+	timestamp	string	服务器响应时间
+	requestId	string	请求ID
+	costMillis	long	服务器处理时间(毫秒数)
+			
+返回内容示例：
+{
+    "status": 200,
+    "message": "success",
+    "timestamp": "2017-01-08T21:48:16.735+0800",
+    "requestId": "5c48319b",
+    "costMillis": 500
+}
+
+7.2.4配置VSM Token信息
+URL：	http://{chsmip:port}/api/{1.0}/vsm/token
+调用方法：	POST
+功能描述：	配置VSM的Token信息。
+Token指使用该VSM的用户标识名，用于表明该VSM已租用给某个用户使用。
+	
+	参数	类型	说明
+输入参数：	requestId	string	请求流水号
+	vsmId	string	VSM识别码
+	token	string	token，用户标识,标识是否被使用。当不被任何用户使用时，改值会被配置成“0”。
+	tenantId	string	用户tenantId，标识被那个用户使用
+			
+输出参数：	status	int	状态码
+	message	string	状态描述
+	timestamp	string	服务器响应时间
+	requestId	string	请求ID
+	costMillis	long	服务器处理时间(毫秒数)
+			
+返回内容示例：
+{
+    "status": 200,
+    "message": "success",
+    "timestamp": "2017-01-08T21:48:16.735+0800",
+    "requestId": "5c48319b",
+    "costMillis": 500
+}
+
+7.2.5导出VSM影像
+URL：	http://{chsmip:port}/api/{1.0}/vsm/image
+调用方法：	POST
+功能描述：	获取指定VSM的数据影像。
+采用加密和签名机制对数据影像进行保护，其保护算法符合GB/T 32918和GB/T 32907规范定义。
+	
+	参数	类型	说明
+输入参数：	requestId	string	请求流水号
+	oprType	string	操作类型，取值：“export”
+	vsmId	string	VSM识别码
+	callbackUrl	string	回调地址，如“http://192.168.0.1/callback”
+			
+输出参数：	status	int	状态码
+	message	string	状态描述
+	timestamp	string	服务器响应时间
+	requestId	string	请求ID
+	costMillis	long	服务器处理时间(毫秒数)
+			
+返回内容示例：
+{
+    "status": 200,
+    "message": "success",
+    "timestamp": "2017-01-08T21:48:16.735+0800",
+    "requestId": "5c48319b",
+    "costMillis": 500
+}
+
+7.2.6导入VSM影像
+URL：	http://{chsmip:port}/api/{1.0}/vsm/image
+调用方法：	POST
+功能描述：	向指定的VSM导入数据影像。
+	
+	参数	类型	说明
+输入参数：	requestId	string	请求流水号
+	oprType	string	操作类型，取值：“import”
+	vsmId	string	VSM识别码
+	imageUrl	string	影像地址，如“http://192.168.0.1/image.zip”
+	alg	string	签名算法，取值范围：
+“RSAWithSHA256”或“SM2WithSM3”
+	sign	string	数字签名值，BASE64编码
+	callbackUrl	string	回调地址，如“http://192.168.0.1/callback”
+			
+输出参数：	status	int	状态码
+	message	string	状态描述
+	timestamp	string	服务器响应时间
+	requestId	string	请求ID
+	costMillis	long	服务器处理时间(毫秒数)
+			
+返回内容示例：
+{
+    "status": 200,
+    "message": "success",
+    "timestamp": "2017-01-08T21:48:16.735+0800",
+    "requestId": "5c48319b",
+    "costMillis": 500
+}
+
+7.2.7启动VSM
+URL：	http://{chsmip:port}/api/{1.0}/vsm
+调用方法：	POST
+功能描述：	启动一个VSM。
+	
+	参数	类型	说明
+输入参数：	requestId	string	请求流水号
+	oprType	string	操作类型，取值：“start”
+	vsmId	string	VSM识别码
+	callbackUrl	string	回调地址，如“http://192.168.0.1/callback”
+			
+输出参数：	status	int	状态码
+	message	string	状态描述
+	timestamp	string	服务器响应时间
+	requestId	string	请求ID
+	costMillis	long	服务器处理时间(毫秒数)
+			
+返回内容示例：
+{
+    "status": 200,
+    "message": "success",
+    "timestamp": "2017-01-08T21:48:16.735+0800",
+    "requestId": "5c48319b",
+    "costMillis": 500
+}
+
+7.2.8停止VSM
+URL：	http://{chsmip:port}/api/{1.0}/vsm
+调用方法：	POST
+功能描述：	关闭一个VSM。
+	
+	参数	类型	说明
+输入参数：	requestId	string	请求流水号
+	oprType	string	操作类型，取值：“stop”
+	vsmId	string	VSM识别码
+	callbackUrl	string	回调地址，如“http://192.168.0.1/callback”
+			
+输出参数：	status	int	状态码
+	message	string	状态描述
+	timestamp	string	服务器响应时间
+	requestId	string	请求ID
+	costMillis	long	服务器处理时间(毫秒数)
+			
+返回内容示例：
+{
+    "status": 200,
+    "message": "success",
+    "timestamp": "2017-01-08T21:48:16.735+0800",
+    "requestId": "5c48319b",
+    "costMillis": 500
+}
+
+7.2.9重启VSM
+URL：	http://{chsmip:port}/api/{1.0}/vsm
+调用方法：	POST
+功能描述：	重启一个VSM。
+	
+	参数	类型	说明
+输入参数：	requestId	string	请求流水号
+	oprType	string	操作类型，取值：“restart”
+	vsmId	string	VSM识别码
+	callbackUrl	string	回调地址，如“http://192.168.0.1/callback”
+			
+输出参数：	status	int	状态码
+	message	string	状态描述
+	timestamp	string	服务器响应时间
+	requestId	string	请求ID
+	costMillis	long	服务器处理时间(毫秒数)
+			
+返回内容示例：
+{
+    "status": 200,
+    "message": "success",
+    "timestamp": "2017-01-08T21:48:16.735+0800",
+    "requestId": "5c48319b",
+    "costMillis": 500
+}
+
+7.2.10重置VSM
+URL：	http://{chsmip:port}/api/{1.0}/vsm
+调用方法：	POST
+功能描述：	重置VSM。清除VSM的用户数据，使VSM恢复为出厂空闲状态。
+	
+	参数	类型	说明
+输入参数：	requestId	string	请求流水号
+	oprType	string	操作类型，取值：“reset”
+	vsmId	string	VSM识别码
+	callbackUrl	string	回调地址，如“http://192.168.0.1/callback”
+			
+输出参数：	status	int	状态码
+	message	string	状态描述
+	timestamp	string	服务器响应时间
+	requestId	string	请求ID
+	costMillis	long	服务器处理时间(毫秒数)
+			
+返回内容示例：
+{
+    "status": 200,
+    "message": "success",
+    "timestamp": "2017-01-08T21:48:16.735+0800",
+    "requestId": "5c48319b",
+    "costMillis": 500
+}
+
+7.2.11升级VSM 
+URL：	http://{chsmip:port}/api/{1.0}/vsm
+调用方法：	POST
+功能描述：	升级一个VSM。升级包命名要求：hw_{厂商}_{chsm/vsm}_{版本号}_{sm2摘要}.bin。其中SM2摘要采用16进制编码。
+	
+	参数	类型	说明
+输入参数：	requestId	string	请求流水号
+	oprType	string	操作类型，取值：“upgrade”
+	vsmId	string	VSM识别码
+	packVersion	string	升级包版本，如“v1.0”
+	packUrl	string	升级包地址，如“http://192.168.0.1/update.zip”
+	alg	string	签名算法，取值范围：
+“RSAWithSHA256”或“SM2WithSM3”
+	sign	string	数字签名值，16进制编码。
+	callbackUrl	string	回调地址，如“http://192.168.0.1/callback”
+			
+输出参数：	status	int	状态码
+	message	string	状态描述
+	timestamp	string	服务器响应时间
+	requestId	string	请求ID
+	costMillis	long	服务器处理时间(毫秒数)
+			
+返回内容示例：
+{
+    "status": 200,
+    "message": "success",
+    "timestamp": "2017-01-08T21:48:16.735+0800",
+    "requestId": "5c48319b",
+    "costMillis": 500
+}
+
+7.1.12创建VSM-预留接口
+URL：	http://{chsmip:port}/api/{1.0}/vsm
+调用方法：	POST
+功能描述：	创建一个VSM。
+支持从内部默认VSM镜像创建实例和从外部下载指定VSM镜像创建实例。
+	
+	参数	类型	说明
+输入参数：	requestId	string	请求流水号
+	oprType	string	操作类型，取值：“create”
+	imageUrl	string	可选域，若该域存在则后述两个域必须存在；
+镜像包地址，如“http://192.168.0.1/img/vsmxx.img”
+	alg	string	可选域，若imageUrl存在则必须存在；
+签名算法，取值范围：
+“RSAWithSHA256”或“SM2WithSM3”
+	sign	string	可选域，若imageUrl存在则必须存在；
+数字签名值，BASE64编码
+	flavor	int	VSM占用资源规格，如1、2、3
+	callbackUrl	string	回调地址，如“http://192.168.0.1/callback”
+			
+输出参数：	status	int	状态码
+	message	string	状态描述
+	timestamp	string	服务器响应时间
+	requestId	string	请求ID
+	costMillis	long	服务器处理时间(毫秒数)
+	vsmId	string	新创建的VSM实例ID
+			
+返回内容示例：
+{
+    "status": 200,
+    "message": "success",
+    "vsmId": "00000000-0000-0000-0000-0CC47AB492BE",
+    "timestamp": "2017-01-08T21:48:16.735+0800",
+    "requestId": "5c48319b",
+    "costMillis": 500
+}
+
+7.2.13删除VSM-预留接口
+URL：	http://{chsmip:port}/api/{1.0}/vsm
+调用方法：	POST
+功能描述：	删除一个VSM。
+	
+	参数	类型	说明
+输入参数：	requestId	string	请求流水号
+	oprType	string	操作类型，取值：“destroy”
+	vsmId	string	新创建的VSM实例ID
+	callbackUrl	string	回调地址，如“http://192.168.0.1/callback”
+			
+输出参数：	status	int	状态码
+	message	string	状态描述
+	timestamp	string	服务器响应时间
+	requestId	string	请求ID
+	costMillis	long	服务器处理时间(毫秒数)
+			
+返回内容示例：
+{
+    "status": 200,
+    "message": "success",
+    "timestamp": "2017-01-08T21:48:16.735+0800",
+    "requestId": "5c48319b",
+    "costMillis": 500
+}
+7.2.14 配置VSM 的mac地址-预留接口
+URL：	http://{chsmip:port}/api/{1.0}/vsm/mac
+调用方法：	POST
+功能描述：	配置vsm的mac地址。
+	
+	参数	类型	说明
+输入参数：	requestId	string	请求流水号
+	vsmId	string	新创建的VSM实例ID
+	mac	string	mac地址，如ba:ca:c1:d2:e3:e4
+			
+输出参数：	status	int	状态码
+	message	string	状态描述
+	timestamp	string	服务器响应时间
+	requestId	string	请求ID
+	costMillis	long	服务器处理时间(毫秒数)
+			
+返回内容示例：
+{
+    "status": 200,
+    "message": "success",
+    "timestamp": "2017-01-08T21:48:16.735+0800",
+    "requestId": "5c48319b",
+    "costMillis": 500
+}
+7.2.15 配置VSM 的vlan-预留接口
+URL：	http://{chsmip:port}/api/{1.0}/vsm/vlan
+调用方法：	POST
+功能描述：	为vsm配置和删除vlan。
+	
+	参数	类型	说明
+输入参数：	requestId	string	请求流水号
+	oprType	string	操作类型，取值：“modify”，“delete”
+	vsmId	string	VSM实例ID
+	vlanType	string	vlan的类型，0—Tag vlan
+	vlanId	string	vlan的id，范围[2-4094]
+			
+输出参数：	status	int	状态码
+	message	string	状态描述
+	timestamp	string	服务器响应时间
+	requestId	string	请求ID
+	costMillis	long	服务器处理时间(毫秒数)
+			
+返回内容示例：
+{
+    "status": 200,
+    "message": "success",
+    "timestamp": "2017-01-08T21:48:16.735+0800",
+    "requestId": "5c48319b",
+    "costMillis": 500
+}
+7.2.16 删除VSM网络信息-预留接口
+URL：	http://{chsmip:port}/api/{1.0}/vsm/network
+调用方法：	DELETE
+功能描述：	删除VSM的网络属性配置。
+	
+	参数	类型	说明
+输入参数：	requestId	string	请求流水号
+	vsmId	string	VSM识别码
+			
+输出参数：	status	int	状态码
+	message	string	状态描述
+	timestamp	string	服务器响应时间
+	requestId	string	请求ID
+	costMillis	long	服务器处理时间(毫秒数)
+			
+返回内容示例：
+{
+    "status": 200,
+    "message": "success",
+    "timestamp": "2017-01-08T21:48:16.735+0800",
+    "requestId": "5c48319b",
+    "costMillis": 500
+}
+
+7.2.17查看设备详情
+URL：	http://{chsmip:port}/api/{1.0}/vsm
+调用方法：	POST
+功能描述：	查看设备详情(与7.1.18类似)vsm获取chsm的sn，Mac，hwAuthCode
+	
+	参数	类型	说明
+输入参数：	requestId	string	请求流水号
+	oprType	String	getDeviceinfo
+输出参数：	status	int	状态码
+	message	string	状态描述
+	timestamp	string	服务器响应时间
+	requestId	string	请求ID
+	costMillis	long	服务器处理时间(毫秒数)
+result对象	version	string	版本
+	ip	string	Ip
+	sn	string	Sn码
+	mac	string	Mac地址
+	hwAuthCode	string	华为方提供得授权码（采购前提供sn+mac
+从华为方换取授权码注入到加密机中）
+返回内容示例：
+    {
+    "status": 200,
+    "message": "操作成功",
+    "timestamp": "2025-12-04T18:06:57.087+0800",
+    "requestId": "test",
+    "costMillis": 233,
+    "result": {
+        "version": "v1.0.0.1",
+        "ip": "100.125.20.214",
+        "sn": "123456789",
+        "mac": "c0:33:da:12:8d:19",
+        "hwAuthCode": ""
+    }
+}

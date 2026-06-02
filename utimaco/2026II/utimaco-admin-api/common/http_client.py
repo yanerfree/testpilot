@@ -36,17 +36,21 @@ class HttpClient:
         params: Dict = None,
         files: Dict = None,
     ) -> str:
-        """拼接待签名字符串"""
-        body = ""
-
+        """拼接待签名字符串。
+        优先级: files+data(表单) > json_data(独占) > data > params
+        json_data 存在时只对 json 签名，不拼接 params。
+        """
         if files and data and isinstance(data, dict):
-            # 文件上传: 只对非文件表单字段按 ASCII 排序
             sig_data = {k: v for k, v in data.items() if k not in files and not hasattr(v, "read")}
             if sig_data:
-                body = "&".join(f"{k}={v}" for k, v in sorted(sig_data.items()) if v is not None)
-        elif json_data is not None:
-            body = json.dumps(json_data)
-        elif data is not None:
+                return "&".join(f"{k}={v}" for k, v in sorted(sig_data.items()) if v is not None)
+            return ""
+
+        if json_data is not None:
+            return json.dumps(json_data)
+
+        body = ""
+        if data is not None:
             if isinstance(data, dict):
                 body = json.dumps(data)
             else:
@@ -164,6 +168,11 @@ class HttpClient:
             logger.info("    params: %s", params)
         if body:
             logger.info("    body:   %s", json.dumps(body, ensure_ascii=False) if isinstance(body, (dict, list)) else body)
+        auth_keys = ["CHSM-AuthPK", "CHSM-SignatureAlg", "CHSM-Signature"]
+        auth_hdrs = {k: headers[k] for k in auth_keys if k in headers}
+        if auth_hdrs:
+            logger.debug("    auth:   %s", json.dumps(auth_hdrs, ensure_ascii=False))
+        logger.debug("    headers: %s", json.dumps(dict(headers), ensure_ascii=False))
 
     @staticmethod
     def _log_response(resp: requests.Response):
@@ -172,6 +181,7 @@ class HttpClient:
             logger.info("    body: %s", json.dumps(resp.json(), ensure_ascii=False))
         except Exception:
             logger.info("    body: %s", resp.text[:500])
+        logger.debug("    resp_headers: %s", dict(resp.headers))
 
 
 def get_http_client(base_url: str = None, auth_enabled: bool = None) -> HttpClient:

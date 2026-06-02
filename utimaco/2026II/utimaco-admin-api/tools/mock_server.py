@@ -3,17 +3,21 @@
 Mock 服务 — 接收密码机的回调通知和文件上传，记录所有请求。
 
 启动:
-  python3 mock_server.py                    # 默认 0.0.0.0:8000
-  python3 mock_server.py --port 9000        # 指定端口
-  python3 mock_server.py --host 127.0.0.1   # 指定绑定地址
+  python3 mock_server.py
 
 记录查看:
   浏览器访问 http://<ip>:<port>/records     # 查看所有请求记录
   记录文件:  mock_data/records.json
-  上传文件:  mock_data/uploads/
+  上传文件:  对应 UPLOAD_DIR 配置目录
 """
 
-import argparse
+# ================================================================
+# 配置 — 在这里修改
+# ================================================================
+PORT = 8000
+HOST = "0.0.0.0"
+UPLOAD_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "data", "uploads")
+
 import json
 import os
 import sys
@@ -24,13 +28,15 @@ from urllib.parse import urlparse, parse_qs
 
 # 数据目录
 DATA_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "mock_data")
-UPLOAD_DIR = os.path.join(DATA_DIR, "uploads")
 RECORDS_FILE = os.path.join(DATA_DIR, "records.json")
 
 
 def ensure_dirs():
     os.makedirs(DATA_DIR, exist_ok=True)
-    os.makedirs(UPLOAD_DIR, exist_ok=True)
+    upload_path = UPLOAD_DIR if os.path.isabs(UPLOAD_DIR) else os.path.join(
+        os.path.dirname(os.path.abspath(__file__)), UPLOAD_DIR)
+    os.makedirs(upload_path, exist_ok=True)
+    return upload_path
 
 
 def load_records():
@@ -46,6 +52,7 @@ def save_records(records):
 
 
 class MockHandler(BaseHTTPRequestHandler):
+    upload_dir = ""
 
     def do_GET(self):
         # /records — 查看请求记录
@@ -178,7 +185,7 @@ class MockHandler(BaseHTTPRequestHandler):
 
             # 保存
             safe_name = f"{timestamp}_{filename}"
-            filepath = os.path.join(UPLOAD_DIR, safe_name)
+            filepath = os.path.join(self.upload_dir, safe_name)
             with open(filepath, "wb") as f:
                 f.write(file_content)
             saved_files.append(safe_name)
@@ -190,7 +197,7 @@ class MockHandler(BaseHTTPRequestHandler):
         """直接保存二进制数据"""
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S_%f")
         filename = f"{timestamp}_upload.bin"
-        filepath = os.path.join(UPLOAD_DIR, filename)
+        filepath = os.path.join(self.upload_dir, filename)
         with open(filepath, "wb") as f:
             f.write(body)
         print(f"  文件保存: {filename} ({len(body)} bytes)")
@@ -254,22 +261,18 @@ def get_local_ip():
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Mock 回调/文件服务")
-    parser.add_argument("--host", default="0.0.0.0", help="绑定地址 (默认 0.0.0.0)")
-    parser.add_argument("--port", type=int, default=8000, help="端口 (默认 8000)")
-    args = parser.parse_args()
-
-    ensure_dirs()
+    upload_path = ensure_dirs()
+    MockHandler.upload_dir = upload_path
 
     local_ip = get_local_ip()
-    server = HTTPServer((args.host, args.port), MockHandler)
-    print(f"Mock 服务启动: http://{local_ip}:{args.port}")
-    print(f"  回调地址示例:  http://{local_ip}:{args.port}/callback")
-    print(f"  上传地址示例:  http://{local_ip}:{args.port}/image/upload")
-    print(f"  记录查看:      http://{local_ip}:{args.port}/records")
-    print(f"  清空记录:      http://{local_ip}:{args.port}/clear")
+    server = HTTPServer((HOST, PORT), MockHandler)
+    print(f"Mock 服务启动: http://{local_ip}:{PORT}")
+    print(f"  回调地址示例:  http://{local_ip}:{PORT}/callback")
+    print(f"  上传地址示例:  http://{local_ip}:{PORT}/image/upload")
+    print(f"  记录查看:      http://{local_ip}:{PORT}/records")
+    print(f"  清空记录:      http://{local_ip}:{PORT}/clear")
     print(f"  数据目录:      {DATA_DIR}")
-    print(f"  文件目录:      {UPLOAD_DIR}")
+    print(f"  上传目录:      {upload_path}")
     print()
 
     try:

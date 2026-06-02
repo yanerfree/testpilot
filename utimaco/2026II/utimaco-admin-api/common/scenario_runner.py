@@ -6,21 +6,12 @@ Excel 新增列:
   step         — 步骤序号（场景内按此排序执行）
   step_type    — setup(前置) / test(被测) / verify(验证)
   save_vars    — 从响应中提取变量，格式: varName=json.path  多个用分号分隔
-  use_vars     — 标记该行使用变量替换（有 ${xx} 占位符时自动替换，无需显式填写）
 
 单条用例（无 scenario_id）仍按原逻辑独立执行，完全向后兼容。
-
-用法:
-    runner = ScenarioRunner(client)
-    results = runner.run_scenario(steps)  # steps 是同一 scenario_id 的行列表
 """
 
-import copy
-import json
 import re
-from typing import Any, Dict, List, Optional
-
-import requests
+from typing import Any, Dict, List
 
 from common.assertions import Assertions
 from common.logger import logger
@@ -96,126 +87,6 @@ def extract_vars(response_json: Any, save_vars_str: str, ctx: ScenarioContext):
             logger.warning("  [ctx] 提取变量失败: %s (路径 %s 无匹配)", var_name, json_path)
 
 
-class StepResult:
-    """单个步骤的执行结果"""
-
-    def __init__(self, step: dict):
-        self.step = step
-        self.case_id: str = step.get("case_id", "")
-        self.step_num: int = int(step.get("step", 0))
-        self.step_type: str = step.get("step_type", "test")
-        self.passed: bool = False
-        self.response: Optional[requests.Response] = None
-        self.error: Optional[str] = None
-        self.skipped: bool = False
-
-
-class ScenarioResult:
-    """整个场景的执行结果"""
-
-    def __init__(self, scenario_id: str):
-        self.scenario_id = scenario_id
-        self.step_results: List[StepResult] = []
-
-    @property
-    def passed(self) -> bool:
-        return all(r.passed or r.skipped for r in self.step_results)
-
-    @property
-    def test_steps(self) -> List[StepResult]:
-        """只返回 step_type=test 的结果（用于报告统计）"""
-        return [r for r in self.step_results if r.step_type == "test"]
-
-
-def run_scenario(steps: List[dict], client, ctx: ScenarioContext = None) -> ScenarioResult:
-    """
-    执行一个场景的所有步骤。
-
-    Args:
-        steps: 同一 scenario_id 的行列表，已按 step 排序
-        client: HttpClient 实例
-        ctx: 可选，外部传入的上下文（用于场景间共享变量）
-    """
-    if ctx is None:
-        ctx = ScenarioContext()
-
-    scenario_id = steps[0].get("scenario_id", steps[0].get("case_id", "unknown"))
-    result = ScenarioResult(scenario_id)
-    setup_failed = False
-
-    for step in steps:
-        sr = StepResult(step)
-        result.step_results.append(sr)
-
-        step_type = step.get("step_type", "test")
-        case_id = step.get("case_id", "")
-        endpoint = step.get("endpoint", "")
-        method = step.get("method", "POST").lower()
-
-        logger.info("--- [%s] step %s (%s): %s %s ---",
-                     scenario_id, step.get("step", "?"), step_type, method.upper(), endpoint)
-
-        # setup 失败后跳过后续步骤
-        if setup_failed:
-            sr.skipped = True
-            sr.error = "前置步骤失败，跳过"
-            logger.warning("  跳过: %s (前置步骤失败)", case_id)
-            continue
-
-        # 变量替换
-        params = ctx.substitute(step.get("params"))
-        json_data = ctx.substitute(step.get("json_data"))
-
-        # 发送请求
-        try:
-            fn = getattr(client, method)
-            kwargs = {}
-            if params and isinstance(params, dict):
-                kwargs["params"] = params
-            if json_data and isinstance(json_data, (dict, list)):
-                kwargs["json_data"] = json_data
-
-            # 选择 host
-            host = step.get("host")
-            if host:
-                from common.http_client import get_http_client
-                req_client = get_http_client(base_url=host)
-                fn = getattr(req_client, method)
-
-            response = fn(endpoint=endpoint, **kwargs)
-            sr.response = response
-        except Exception as e:
-            sr.error = f"请求异常: {e}"
-            logger.error("  请求异常: %s", e)
-            if step_type == "setup":
-                setup_failed = True
-            continue
-
-        # 提取变量（在断言之前，确保即使断言失败也能提取到变量）
-        save_vars = step.get("save_vars")
-        if save_vars and response:
-            try:
-                extract_vars(response.json(), save_vars, ctx)
-            except Exception as e:
-                logger.warning("  变量提取失败: %s", e)
-
-        # 断言
-        expected_status = int(step.get("expected_status", 200))
-        assert_rules = step.get("assert_rules")
-        try:
-            assertions.assert_status_code(response, expected_status)
-            if assert_rules:
-                assertions.apply_assert_rules(response, assert_rules)
-            sr.passed = True
-        except AssertionError as e:
-            sr.error = str(e)
-            logger.error("  断言失败: %s", e)
-            if step_type == "setup":
-                setup_failed = True
-
-    return result
-
-
 def group_scenarios(test_data: List[dict]) -> List[List[dict]]:
     """
     将测试数据按场景分组。
@@ -239,9 +110,22 @@ def group_scenarios(test_data: List[dict]) -> List[List[dict]]:
             standalone.append([row])
 
     # 场景内按 step 排序
-    grouped = []
+    grouped = {}
     for sid, steps in scenarios.items():
         steps.sort(key=lambda r: int(r.get("step", 0)))
-        grouped.append(steps)
+        grouped[sid] = steps
 
-    return grouped + standalone
+    # 按 Excel 行顺序输出：每个场景/独立用例取首行的 excel_row 排序
+    result: List[List[dict]] = []
+    seen_scenarios = set()
+    for row in test_data:
+        sid = row.get("scenario_id")
+        if sid and isinstance(sid, str) and sid.strip():
+            sid = sid.strip()
+            if sid not in seen_scenarios:
+                seen_scenarios.add(sid)
+                result.append(grouped[sid])
+        else:
+            result.append([row])
+
+    return result
