@@ -19,10 +19,11 @@ from config import config
 
 
 class HttpClient:
-    def __init__(self, base_url: str = None, auth_enabled: bool = None):
+    def __init__(self, base_url: str = None, auth_enabled: bool = None, fingerprint_override: str = None):
         self.base_url = base_url or config.base_url
         self.timeout = config.timeout
         self.auth_enabled = auth_enabled if auth_enabled is not None else config.auth_enabled
+        self.fingerprint_override = fingerprint_override
         self.session = requests.Session()
         self.session.headers["User-Agent"] = "CHSM-Test/2.0"
 
@@ -77,6 +78,8 @@ class HttpClient:
         sign_str = self._build_sign_string(json_data, data, params, files)
         signer = get_signer()
         auth_headers = signer.sign(sign_str)
+        if self.fingerprint_override:
+            auth_headers["CHSM-AuthPK"] = self.fingerprint_override
         headers.update(auth_headers)
         logger.info("已注入认证头: alg=%s", signer.algorithm_name())
 
@@ -184,6 +187,6 @@ class HttpClient:
         logger.debug("    resp_headers: %s", dict(resp.headers))
 
 
-def get_http_client(base_url: str = None, auth_enabled: bool = None) -> HttpClient:
+def get_http_client(base_url: str = None, auth_enabled: bool = None, fingerprint_override: str = None) -> HttpClient:
     """工厂函数: 创建 HttpClient 实例"""
-    return HttpClient(base_url=base_url, auth_enabled=auth_enabled)
+    return HttpClient(base_url=base_url, auth_enabled=auth_enabled, fingerprint_override=fingerprint_override)

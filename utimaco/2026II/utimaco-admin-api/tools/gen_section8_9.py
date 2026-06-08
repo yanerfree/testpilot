@@ -535,7 +535,7 @@ def gen_tenant_standalone():
         row("TENANT_EXPORT_001", "exportBackupKeys 正常导出(返回binary)",
             "/platformServlet", 200,
             params="method=exportBackupKeys&requestId=uuid",
-            json_data=jd({"requestId": "uuid", "backupKey": "test_backup_key_123"}),
+            json_data=jd({"requestId": "uuid", "backupKey": "VXnJ514jUDnAHhNqdypZkFVkn5DZBYBaXpH/GMmmDLc="}),
             assert_rules=ok_status_only(),
             method="POST", section="9.2.5", host=VSM_HOST),
         row("TENANT_EXPORT_002", "exportBackupKeys 缺backupKey",
@@ -551,7 +551,7 @@ def gen_tenant_standalone():
         row("TENANT_EXPORT_004", "exportBackupKeys 缺requestId",
             "/platformServlet", 400,
             params="method=exportBackupKeys",
-            json_data=jd({"backupKey": "test_backup_key_123"}),
+            json_data=jd({"backupKey": "VXnJ514jUDnAHhNqdypZkFVkn5DZBYBaXpH/GMmmDLc="}),
             method="POST", section="9.2.5", host=VSM_HOST),
     ])
 
@@ -560,7 +560,7 @@ def gen_tenant_standalone():
         row("TENANT_IMPORT_001", "importBackupKeys 正常导入",
             "/platformServlet", 200,
             params="method=importBackupKeys",
-            json_data=jd({"requestId": "uuid", "backupKey": "test_backup_key_123"}),
+            json_data=jd({"requestId": "uuid", "backupKey": "VXnJ514jUDnAHhNqdypZkFVkn5DZBYBaXpH/GMmmDLc="}),
             method="POST", section="9.2.6", host=VSM_HOST,
             file_path="data/test_backup.dat"),
         row("TENANT_IMPORT_002", "importBackupKeys 缺backupKey",
@@ -572,13 +572,13 @@ def gen_tenant_standalone():
         row("TENANT_IMPORT_003", "importBackupKeys 缺requestId",
             "/platformServlet", 400,
             params="method=importBackupKeys",
-            json_data=jd({"backupKey": "test_backup_key_123"}),
+            json_data=jd({"backupKey": "VXnJ514jUDnAHhNqdypZkFVkn5DZBYBaXpH/GMmmDLc="}),
             method="POST", section="9.2.6", host=VSM_HOST,
             file_path="data/test_backup.dat"),
         row("TENANT_IMPORT_004", "importBackupKeys 缺文件",
             "/platformServlet", 400,
             params="method=importBackupKeys",
-            json_data=jd({"requestId": "uuid", "backupKey": "test_backup_key_123"}),
+            json_data=jd({"requestId": "uuid", "backupKey": "VXnJ514jUDnAHhNqdypZkFVkn5DZBYBaXpH/GMmmDLc="}),
             method="POST", section="9.2.6", host=VSM_HOST),
     ])
 

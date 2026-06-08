@@ -5,6 +5,10 @@ auth:
   enabled: true
   # 签名算法: RSAWithSHA256 | SM2WithSM3
   algorithm: "RSAWithSHA256"
+  # 指纹覆盖: 留空用 signer 自动计算，填值则覆盖 CHSM-AuthPK 头
+  # CHSM(7.1/7.2) 和 VSM(9.2) 同一公钥指纹算法不同，需分别配置
+  chsm_fingerprint: ""
+  vsm_fingerprint: ""
   rsa:
     private_key_path: "cert/rsa_private_key.pem"
     public_key_path: "cert/rsa_public_key.pem"

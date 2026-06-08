@@ -122,10 +122,12 @@ class TestCHSMAPI:
         should_collect = bool(ref_case_id)
         excel_row = step.get("excel_row", "?")
 
+        section = step.get("section", "")
+
         if scenario_id:
-            step_label = f"[step {step_num} {step_type}] {case_id}: {desc}"
+            step_label = f"[{section}] [step {step_num} {step_type}] {case_id}: {desc}"
         else:
-            step_label = f"{case_id}: {desc}"
+            step_label = f"[{section}] {case_id}: {desc}"
 
         logger.info("=" * 60)
         logger.info("用例: %s | Excel行: %s | 期望: %d", case_id, excel_row, expected_status)
@@ -146,7 +148,20 @@ class TestCHSMAPI:
                 logger.info("使用 host: %s", host)
             auth_val = str(step.get("auth") or "").strip().lower()
             auth_enabled = False if auth_val == "no" else True
-            client = get_http_client(base_url=host, auth_enabled=auth_enabled)
+            section = step.get("section", "")
+
+            # 根据 section 选择指纹: 9.2 用 vsm_fingerprint，其他用 chsm_fingerprint
+            fp_override = None
+            if str(section).startswith("9.2"):
+                vsm_fp = config.get("auth.vsm_fingerprint", "")
+                if vsm_fp:
+                    fp_override = vsm_fp
+            else:
+                chsm_fp = config.get("auth.chsm_fingerprint", "")
+                if chsm_fp:
+                    fp_override = chsm_fp
+
+            client = get_http_client(base_url=host, auth_enabled=auth_enabled, fingerprint_override=fp_override)
 
             # 发送请求
             try:

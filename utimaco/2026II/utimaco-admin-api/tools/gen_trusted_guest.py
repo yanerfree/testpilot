@@ -724,7 +724,7 @@ def gen_vsm_token_scenario():
             jd({"requestId": "uuid", "vsmId": "${env.vsmId}", "token": "test_token_123", "tenantId": "tenant_001"}),
             ref_case_id="VSM_TOKEN_001", section="7.2.4"),
         row("VSM_TOKEN_002", "configVSMToken token=0释放", EP_VTOK, 200,
-            jd({"requestId": "uuid", "vsmId": "${env.vsmId}", "token": "0"}),
+            jd({"requestId": "uuid", "vsmId": "${env.vsmId}", "token": "0", "tenantId": "tenant_001"}),
             ref_case_id="VSM_TOKEN_002", section="7.2.4"),
         row("VSM_TOKEN_T01", "configVSMToken requestId空字符串", EP_VTOK, 400,
             jd({"requestId": "", "vsmId": "${env.vsmId}", "token": "test_token", "tenantId": "tenant_001"}),
@@ -1205,7 +1205,7 @@ def gen_config_verify_scenarios():
     ])
 
     # --- SCN_VERIFY_UPLOAD: 配上传地址→查验证 ---
-    VERIFY_UPLOAD = "http://10.99.99.99:9999/verify_upload"
+    VERIFY_UPLOAD = "http://127.0.0.1:9443/images"
     rows.extend([
         row("VERIFY_UPLOAD_001", "配置影像上传地址用特定值", "/api/1.0/chsm/imageuploader", 200,
             jd({"requestId": "uuid", "url": VERIFY_UPLOAD}),

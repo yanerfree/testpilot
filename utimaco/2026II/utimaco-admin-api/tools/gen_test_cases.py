@@ -272,7 +272,7 @@ def get_auth_type(case_id: str, sheet: str) -> str:
         return "pk"
     if sheet == "section8":
         return "fileserver"
-    if sheet == "section9", "section9_pk":
+    if sheet in ("section9", "section9_pk"):
         return "tenant"
     return "trusted"
 
