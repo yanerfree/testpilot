@@ -34,9 +34,9 @@ API_ALG = {"rsa": "RSAWithSHA256", "sm2": "sm2"}
 RSA_KEY1 = "${keys.rsa.key1.public_key_pem}"
 RSA_KEY2 = "${keys.rsa.key2.public_key_pem}"
 RSA_KEY3 = "${keys.rsa.key3.public_key_pem}"
-SM2_KEY1 = "${keys.sm2.key1.public_key_pem}"
-SM2_KEY2 = "${keys.sm2.key2.public_key_pem}"
-SM2_KEY3 = "${keys.sm2.key3.public_key_pem}"
+SM2_KEY1 = "${keys.sm2.key1.public_key}"
+SM2_KEY2 = "${keys.sm2.key2.public_key}"
+SM2_KEY3 = "${keys.sm2.key3.public_key}"
 
 RSA_FP1 = "/WiF31yZx0q9nF0fQBudD7xSeivFBfdEhG8hl/KQo1c="
 RSA_FP2 = "8CPhhUBOk75PaceSD6UjfghIh2V0xEo+1v2nUN4k7uc="

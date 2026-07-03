@@ -1,4 +1,5 @@
 {
+  "_备注": "此文件仅供人工查阅参考，不被任何代码引用。实际使用的密钥文件是 data/keys.json",
   "rsa_keys": [
     {
       "id": 1,
@@ -23,11 +24,17 @@
     {
       "id": 1,
       "note": "SM2签名认证用",
+      "private_key_hex": "b62JyzmdxSk40Vne2zKhILnAZT2N9ZpkWmBvjus/cNA=",
+      "public_key_hex": "BA0Nf6CqmrtHGEJWjjqZGwwe9LKKyl8/KlrLdDhUQ7j3T1OzxWRfFJRXq5ihp4wiyWzvRi5G1n/JU8dgawxEhgg="
+    },
+    {
+      "id": 2,
+      "note": "多公钥测试用",
       "private_key_hex": "DAC4ED2EC2B7F3DCE904577A83CC2AFCEE4F1EB362A615793A5081CAEE817ED1",
       "public_key_hex": "15974d4c7d1b7de8c7c7ae5cb568bdb6672645d2801ed415d396c1ae9a57486ea3aa7fb376486c39995d7a574b18d2e17ddf0f5d0256fcefcebb7e83724f0806"
     },
     {
-      "id": 2,
+      "id": 3,
       "note": "多公钥测试用",
       "private_key_hex": "A27CD868198B473EF2C46FDE2D5DD904A7DA4EEF1F74DD61CCD76FA39011E775",
       "public_key_hex": "318ef67a1f1ddca3425b862b0271f87a696ea03ea46a938f25336fbc86eb5097a3f9f6dd0cf180c9a7d66e9e927fa7e1ff9352d7fd919968f23ef90f2afc3760"

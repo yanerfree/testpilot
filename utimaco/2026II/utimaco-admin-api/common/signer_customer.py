@@ -32,9 +32,9 @@ RSA_PRIVATE_KEY = "MIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQDbl8f5IBYs3
 
 RSA_PUBLIC_KEY = "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA25fH+SAWLN29LhTjbEsFGsd0kJJosWLskdYUiZ8UV0BF4uO8k8lh07HXYNIGpGRpT2pOgnqFfWBNpXHk9CTpjccDIpWtvug1IFpqWs2I9SzPwgYxUM5BbHSarjFKGUcSsyG4cuq3s9pgqqCUeew2mo+l1dWdZOqYgxMakWHp91/9k8lSrVJdZsl24rXriP65GteGywYBPjw51hoBsnKUayuMdQWOv2t+Q/nBIbmLKBoKeDkxM9aOy2GWTEQ69KYs68M0iZiPujeDjiENib5BXE0M+GUPvPoPwxbru77YT/MgPhyCCWvszgQkJdTeb9UM7Z5vryTX3AfsjwZbPEecAQIDAQAB"
 
-SM2_PRIVATE_KEY = "6FAD89CB399DC52938D159DEDB32A120B9C0653D8DF59A645A606F8EEB3F70D0"
+SM2_PRIVATE_KEY = "b62JyzmdxSk40Vne2zKhILnAZT2N9ZpkWmBvjus/cNA="
 
-SM2_PUBLIC_KEY = "0d0d7fa0aa9abb471842568e3a991b0c1ef4b28aca5f3f2a5acb74385443b8f74f53b3c5645f149457ab98a1a78c22c96cef462e46d67fc953c7606b0c448608"
+SM2_PUBLIC_KEY = "BA0Nf6CqmrtHGEJWjjqZGwwe9LKKyl8/KlrLdDhUQ7j3T1OzxWRfFJRXq5ihp4wiyWzvRi5G1n/JU8dgawxEhgg="
 
 
 # ================================================================
@@ -185,7 +185,7 @@ class RSASigner(BaseSigner):
             hashes.SHA256(),
         )
         return {
-            "CHSM-AuthPK": self._fingerprint,
+            "CHSM-AuthPK": "QvbCUYXy/f6fWvJTv1gP3mBwS2zPc7C5Y7pffO+htB4=", # "70CdAfIy2L3wccIUM9Lk9MWnB+pFBPENSQc88q7+BQ0="#,#, ,self._fingerprint,
             "CHSM-SignatureAlg": self.algorithm_name(),
             "CHSM-Signature": base64.b64encode(sig).decode("utf-8"),
         }
@@ -228,7 +228,7 @@ class SM2Signer(BaseSigner):
     def sign(self, data: str) -> Dict[str, str]:
         sig_hex = self._sm2_crypt.sign_with_sm3(data.encode("utf-8"))
         return {
-            "CHSM-AuthPK": self._fingerprint,
+            "CHSM-AuthPK": "T098X6uAFR1HqLee5uQy+QuVhCWfZCLCs8/h208HOfA=",#"USo1RSNfpigzeKT16urRd8qViV8Zld+GbbJ+3GlF5DQ=",#self._fingerprint,
             "CHSM-SignatureAlg": self.algorithm_name(),
             "CHSM-Signature": base64.b64encode(bytes.fromhex(sig_hex)).decode("utf-8"),
         }
