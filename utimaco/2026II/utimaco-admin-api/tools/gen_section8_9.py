@@ -33,8 +33,6 @@ import json
 import os
 import sys
 
-from gen_pk import SM2_KEY1
-
 try:
     import openpyxl
 except ImportError:
@@ -277,7 +275,7 @@ def gen_tenant_authpk_scenario():
     add("TENANT_AUTHPK_002", "authPK 配置第2个SM2公钥(混合算法,总数2)",
         "/authServlet", 200,
         params="method=authPK",
-        json_data=jd({"requestId": "uuid", "alg": "sm2", "pks": [SM2_KEY1]}),
+        json_data=jd({"requestId": "uuid", "alg": "sm2", "pks": ["${keys.sm2.key1.public_key_pem}"]}),
         section="9.2.2")
 
     # step 4: 查询验证RSA+SM2两组指纹（2组，各1个）
@@ -364,7 +362,7 @@ def gen_tenant_limit_scenario():
         row("TENANT_LIMIT_S02", "authPK 配置第2个SM2公钥(前置,总数2)",
             "/authServlet", 200,
             params="method=authPK",
-            json_data=jd({"requestId": "uuid", "alg": "sm2", "pks": [SM2_KEY1]}),
+            json_data=jd({"requestId": "uuid", "alg": "sm2", "pks": ["${keys.sm2.key1.public_key_pem}"]}),
             scenario_id="SCN_TENANT_LIMIT", step=3, step_type="setup",
             section="9.2.2", host=VSM_HOST, auth="no"),
         row("TENANT_LIMIT_T01", "authPK 超限-已有2个再传1个第3个",

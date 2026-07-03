@@ -25,21 +25,21 @@
   "sm2": {
     "key1": {
       "note": "主密钥 — config.yaml 中签名用这个",
-      "public_key": "BA0Nf6CqmrtHGEJWjjqZGwwe9LKKyl8/KlrLdDhUQ7j3T1OzxWRfFJRXq5ihp4wiyWzvRi5G1n/JU8dgawxEhgg=",
-      "public_key_pem": "-----BEGIN PUBLIC KEY-----\nMFkwEwYHKoZIzj0CAQYIKoEcz1UBgi0DQgAEDQ1/oKqau0cYQlaOOpkbDB70sorK\nXz8qWst0OFRDuPdPU7PFZF8UlFermKGnjCLJbO9GLkbWf8lTx2BrDESGCA==\n-----END PUBLIC KEY-----",
-      "private_key": "b62JyzmdxSk40Vne2zKhILnAZT2N9ZpkWmBvjus/cNA="
-    },
-    "key2": {
-      "note": "多公钥测试用",
       "public_key": "15974d4c7d1b7de8c7c7ae5cb568bdb6672645d2801ed415d396c1ae9a57486ea3aa7fb376486c39995d7a574b18d2e17ddf0f5d0256fcefcebb7e83724f0806",
       "public_key_pem": "-----BEGIN PUBLIC KEY-----\nMFkwEwYHKoZIzj0CAQYIKoEcz1UBgi0DQgAEFZdNTH0bfejHx65ctWi9tmcmRdKA\nHtQV05bBrppXSG6jqn+zdkhsOZldeldLGNLhfd8PXQJW/O/Ou36Dck8IBg==\n-----END PUBLIC KEY-----",
       "private_key": "DAC4ED2EC2B7F3DCE904577A83CC2AFCEE4F1EB362A615793A5081CAEE817ED1"
     },
-    "key3": {
-      "note": "多公钥测试用（第3个，用于超限测试）",
+    "key2": {
+      "note": "多公钥测试用",
       "public_key": "318ef67a1f1ddca3425b862b0271f87a696ea03ea46a938f25336fbc86eb5097a3f9f6dd0cf180c9a7d66e9e927fa7e1ff9352d7fd919968f23ef90f2afc3760",
       "public_key_pem": "-----BEGIN PUBLIC KEY-----\nMFkwEwYHKoZIzj0CAQYIKoEcz1UBgi0DQgAEMY72eh8d3KNCW4YrAnH4emluoD6k\napOPJTNvvIbrUJej+fbdDPGAyafWbp6Sf6fh/5NS1/2RmWjyPvkPKvw3YA==\n-----END PUBLIC KEY-----",
       "private_key": "A27CD868198B473EF2C46FDE2D5DD904A7DA4EEF1F74DD61CCD76FA39011E775"
+    },
+    "key3": {
+      "note": "多公钥测试用（第3个，用于超限测试）",
+      "public_key": "d39a43278d2e63cec269c547f28e7006a52cf84675a1ac89d18cf8088a824a9358ca3abd1d4513a57f3473a2a9d2f5af5fba258a0ee96c543232c8501b3124f7",
+      "public_key_pem": "-----BEGIN PUBLIC KEY-----\nMFkwEwYHKoZIzj0CAQYIKoEcz1UBgi0DQgAE05pDJ40uY87CacVH8o5wBqUs+EZ1\noayJ0Yz4CIqCSpNYyjq9HUUTpX80c6Kp0vWvX7olig7pbFQyMshQGzEk9w==\n-----END PUBLIC KEY-----",
+      "private_key": "5C2F907233D8668F0886FED5579C4FD5280EBB566AC1851C83E6640EA25FCDCC"
     }
   }
 }

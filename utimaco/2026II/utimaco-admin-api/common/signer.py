@@ -24,17 +24,16 @@ from config import config
 
 
 # ================================================================
-# 默认密钥 — cert/sm2_private_key.pem 等文件不存在时，用下方硬编码值
-# 与 cert/keys.json 无关，keys.json 仅供测试用例引用
+# 默认密钥 — cert/ 下文件不存在时用这里的
 # ================================================================
 
 RSA_PRIVATE_KEY = "MIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQDbl8f5IBYs3b0uFONsSwUax3SQkmixYuyR1hSJnxRXQEXi47yTyWHTsddg0gakZGlPak6CeoV9YE2lceT0JOmNxwMila2+6DUgWmpazYj1LM/CBjFQzkFsdJquMUoZRxKzIbhy6rez2mCqoJR57Daaj6XV1Z1k6piDExqRYen3X/2TyVKtUl1myXbiteuI/rka14bLBgE+PDnWGgGycpRrK4x1BY6/a35D+cEhuYsoGgp4OTEz1o7LYZZMRDr0pizrwzSJmI+6N4OOIQ2JvkFcTQz4ZQ+8+g/DFuu7vthP8yA+HIIJa+zOBCQl1N5v1Qztnm+vJNfcB+yPBls8R5wBAgMBAAECggEAHgDqk1j1frLbZuD2w/SqIWMQQ7KleFs+XJzGGJmyQ0umYN5iBUVWRwD9Hx8DRlHr66xoRr6r35oZcdoSgONMQBFplb+iyjtbCu0frAF6TZmOV4HWGibcXI/AFL3qVHLYFL6uP5FfgUT8wUOIlfIW8d5ft8xkoYXGSd6B2kxpFeH4TPFarEIHe5CLQbKjCszTny8VChgoY/wp/n4sKk1+10P4oHQXZc0/Tb/CR23t7gVJPGthNgrY37vgXaVRH2P0JR8O/k2sq+bpfdAv2RNgFbWcWeaZqWV0utf5UkW6JSqf2q8CsamsBxSWHxRgvgkBGTtTMVa372R5t/yolRrWawKBgQDeeXgOKfbhbpqSQqQpyfMX1bQP1ChmslnHVVI3XOx+kx8+wyGgG9ILeyLM6D20R9QQ642X4cmtVZtPwVpLV3kMk4XyT7l5duFgp4KUoQRMe6/u+MNu/8vreAnzrJdf0lY0M5VRJsMtGPxxyJPaMIVkbtg8EgP1rR6OiqbZ0/TyTwKBgQD8ryWx2TRL0qx2AfJfoXWnh9+o2NdxdcFQMRkiwq+p9Lpp18dgRN2do7cP7ABsvaysYciVmy3jmhbzZ76AbO4hKEaEq7jkjxSgs0D7UxItc9sNsC8ZQYPntF3bVaOQQEvULMDCJBppxphASh0ZgXWBlDCGs/WT46AE4LKRnCSIrwKBgHRMBTFKSI9RtSWuBoj908Dq6sS3gCMnKn1kIaVlQw9rsxKpCKPcxzFPPkLlSJQ8VCRALnVuB3I/5P+NMLlf0Zx8ZbHkcS2IsopHJqCxh0DAC5kdm3Qj7aJ6zqD94OerWXrSWETiwXaKsDR+yKNvZ9u3gfvs4vsDc4zJ+Cy4ezxLAoGBAPFjJGBs/b99Z5FoNLFUnf/IFkrHs7DI7D5+WOPTFlsG1losb2OxBgEFF+lW6+T1oZIf6623y7PFTS2DqwImjaoRPqSZI4z8fpkyBN7SsefH6Lh/2c6HvsnHjW3tts4kDgyIIDCWqsDnniS0aG4oNSfveBgGrJB2ADUIrq3ZezEzAoGABujH4cusjpp2H2IzYjSh5vSEih3o9kCQPkQqL2eFJFenrVONhXcaemcGIr3CJtSECDIFJfY8OdB3BlIvhQW7UQusEzS7T0Ztw/J09K5IkV5K554XjWDGk7yfi3h0+fuWvatvW0nrfy3Ls4BCXO6GlK4+BeD2dD2LgHdK7uExVTc="
 
 RSA_PUBLIC_KEY = "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA25fH+SAWLN29LhTjbEsFGsd0kJJosWLskdYUiZ8UV0BF4uO8k8lh07HXYNIGpGRpT2pOgnqFfWBNpXHk9CTpjccDIpWtvug1IFpqWs2I9SzPwgYxUM5BbHSarjFKGUcSsyG4cuq3s9pgqqCUeew2mo+l1dWdZOqYgxMakWHp91/9k8lSrVJdZsl24rXriP65GteGywYBPjw51hoBsnKUayuMdQWOv2t+Q/nBIbmLKBoKeDkxM9aOy2GWTEQ69KYs68M0iZiPujeDjiENib5BXE0M+GUPvPoPwxbru77YT/MgPhyCCWvszgQkJdTeb9UM7Z5vryTX3AfsjwZbPEecAQIDAQAB"
 
-SM2_PRIVATE_KEY = "6FAD89CB399DC52938D159DEDB32A120B9C0653D8DF59A645A606F8EEB3F70D0"
+SM2_PRIVATE_KEY = "DAC4ED2EC2B7F3DCE904577A83CC2AFCEE4F1EB362A615793A5081CAEE817ED1"
 
-SM2_PUBLIC_KEY = "0d0d7fa0aa9abb471842568e3a991b0c1ef4b28aca5f3f2a5acb74385443b8f74f53b3c5645f149457ab98a1a78c22c96cef462e46d67fc953c7606b0c448608"
+SM2_PUBLIC_KEY = "15974d4c7d1b7de8c7c7ae5cb568bdb6672645d2801ed415d396c1ae9a57486ea3aa7fb376486c39995d7a574b18d2e17ddf0f5d0256fcefcebb7e83724f0806"
 
 
 # ================================================================
@@ -66,40 +65,6 @@ def _load_hex_key(cfg_path: str, fallback: str) -> str:
             logger.info("从文件加载密钥: %s", abs_path)
             return key
     return fallback
-
-
-def _normalize_sm2_private(raw: str) -> str:
-    """SM2 私钥归一化为 hex。自动识别 hex / base64 两种输入格式。"""
-    raw = raw.strip()
-    try:
-        b = bytes.fromhex(raw)
-        if len(b) == 32:
-            return raw.upper()
-    except ValueError:
-        pass
-    b = base64.b64decode(raw)
-    if len(b) != 32:
-        raise ValueError(f"SM2 私钥长度异常: {len(b)} 字节 (期望 32)")
-    return b.hex().upper()
-
-
-def _normalize_sm2_public(raw: str) -> str:
-    """SM2 公钥归一化为 64 字节 hex（无 04 前缀）。自动识别 hex / base64 两种输入格式。"""
-    raw = raw.strip()
-    try:
-        b = bytes.fromhex(raw)
-        if len(b) == 64:
-            return raw
-        if len(b) == 65 and b[0] == 0x04:
-            return b[1:].hex()
-    except ValueError:
-        pass
-    b = base64.b64decode(raw)
-    if len(b) == 65 and b[0] == 0x04:
-        return b[1:].hex()
-    if len(b) == 64:
-        return b.hex()
-    raise ValueError(f"SM2 公钥长度异常: {len(b)} 字节 (期望 64 或 65)")
 
 
 # ================================================================
@@ -208,10 +173,8 @@ class SM2Signer(BaseSigner):
         except ImportError:
             raise ImportError("SM2WithSM3 需要 gmssl 库: pip install gmssl")
 
-        raw_priv = _load_hex_key("auth.sm2.private_key_path", SM2_PRIVATE_KEY)
-        raw_pub = _load_hex_key("auth.sm2.public_key_path", SM2_PUBLIC_KEY)
-        private_hex = _normalize_sm2_private(raw_priv)
-        public_hex = _normalize_sm2_public(raw_pub)
+        private_hex = _load_hex_key("auth.sm2.private_key_path", SM2_PRIVATE_KEY)
+        public_hex = _load_hex_key("auth.sm2.public_key_path", SM2_PUBLIC_KEY)
 
         self._sm2_crypt = _sm2.CryptSM2(
             private_key=private_hex,
